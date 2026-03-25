@@ -423,19 +423,19 @@ class Wave {
       const x = cx - w / 2 + (j / segments) * w;
       const phase = t * (1.5 + this.i * 0.3) + this.phase;
       const envelope = Math.sin((j / segments) * Math.PI);
-      // Amplitude driven by band — waves get TALLER, not thicker
+      // Amplitude driven by band — waves get TALLER with music
       const y = cy + Math.sin(j * this.freq * 0.03 + phase) * this.amp * envelope * (0.6 + influence * 0.6 + bandBoost * 1.5);
       if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = this.color;
-    // Line width stays thin — max ~2.5px baseline, brief 4px flash on hits
-    ctx.lineWidth = this.lw + influence * 0.2 + hitVal * 2;
-    ctx.globalAlpha = Math.min(0.85, 0.3 + influence * 0.2 + bandBoost * 0.2);
+    // HARD CAP: line width never exceeds 2px. Period.
+    ctx.lineWidth = Math.min(2, this.lw);
+    ctx.globalAlpha = Math.min(0.8, 0.3 + influence * 0.15 + bandBoost * 0.15);
     ctx.stroke();
-    // Brief flash glow ONLY on sharp transients
+    // Brief glow flash ONLY on sharp drum hits — still thin, just brighter
     if (hitVal > 0.3) {
-      ctx.globalAlpha = (hitVal - 0.3) * 0.35;
-      ctx.lineWidth = this.lw + 3;
+      ctx.globalAlpha = (hitVal - 0.3) * 0.25;
+      ctx.lineWidth = Math.min(3, this.lw + 1);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
