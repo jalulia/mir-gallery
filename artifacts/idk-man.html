@@ -7,531 +7,457 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Lekton:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #F5F0E8; overflow: hidden; font-family: 'Lekton', monospace; cursor: default; }
+  body { background: #e8e4d8; overflow: hidden; font-family: 'Lekton', monospace; cursor: default; }
   canvas { display: block; position: fixed; top: 0; left: 0; }
-  #hud { position: fixed; top: 20px; left: 24px; z-index: 10; pointer-events: none; }
-  #hud h1 { font-size: 10px; font-weight: 700; color: #3D6DF4; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.4; }
-  #hud p { font-size: 9px; color: #00000020; letter-spacing: 0.08em; text-transform: uppercase; }
-  #count { position: fixed; bottom: 16px; right: 24px; z-index: 10; pointer-events: none; }
-  #count p { font-size: 9px; color: #00000012; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+  #hud { position: fixed; top: 16px; left: 20px; z-index: 10; pointer-events: none; }
+  #hud h1 { font-size: 10px; font-weight: 700; color: #3D6DF4; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.35; }
+  #hud p { font-size: 9px; color: #00000018; letter-spacing: 0.08em; text-transform: uppercase; }
   #dropZone { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; justify-content: center; pointer-events: none; }
   #dropZone.active { pointer-events: auto; }
-  #dropZone.dragover { background: rgba(61,109,244,0.03); }
-  #dropZone p { font-size: 11px; color: #3D6DF4; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.1; border: 1px dashed #3D6DF420; padding: 12px 24px; border-radius: 6px; cursor: pointer; pointer-events: auto; }
-  #dropZone p:hover { opacity: 0.25; border-color: #3D6DF450; }
-  #dropZone.dragover p { opacity: 0.3; border-color: #3D6DF4; }
+  #dropZone p { font-size: 10px; color: #3D6DF4; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.08; border: 1px dashed #3D6DF418; padding: 10px 20px; border-radius: 6px; cursor: pointer; pointer-events: auto; }
+  #dropZone p:hover { opacity: 0.2; }
   #dropZone.loaded { display: none; }
-  #transport { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 15; display: none; align-items: center; gap: 10px; padding: 6px 16px; border-radius: 6px; background: rgba(245,240,232,0.7); backdrop-filter: blur(8px); border: 1px solid #00000008; }
+  #transport { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 15; display: none; align-items: center; gap: 8px; padding: 5px 14px; border-radius: 5px; background: rgba(232,228,216,0.7); backdrop-filter: blur(6px); border: 1px solid #00000006; }
   #transport.visible { display: flex; }
   #transport * { font-family: 'Lekton', monospace; }
-  #trackName { font-size: 9px; color: #00000025; letter-spacing: 0.04em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #playBtn { background: none; border: none; color: #3D6DF4; font-size: 12px; cursor: pointer; opacity: 0.4; }
-  #playBtn:hover { opacity: 0.8; }
-  #progressWrap { width: 140px; height: 14px; display: flex; align-items: center; cursor: pointer; }
-  #progressTrack { width: 100%; height: 2px; background: #00000008; border-radius: 1px; position: relative; overflow: hidden; }
-  #progressFill { height: 100%; background: #3D6DF4; width: 0%; border-radius: 1px; opacity: 0.4; }
-  #timeDisplay { font-size: 9px; color: #00000015; letter-spacing: 0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #trackName { font-size: 9px; color: #00000020; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #playBtn { background: none; border: none; color: #3D6DF4; font-size: 11px; cursor: pointer; opacity: 0.35; }
+  #progressWrap { width: 120px; height: 12px; display: flex; align-items: center; cursor: pointer; }
+  #progressTrack { width: 100%; height: 1.5px; background: #00000008; border-radius: 1px; overflow: hidden; }
+  #progressFill { height: 100%; background: #3D6DF4; width: 0%; opacity: 0.3; }
+  #timeDisplay { font-size: 8px; color: #00000012; font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud">
-  <h1>ø co. / idk man</h1>
-  <p>modular isometric park goers</p>
-</div>
-<div id="count">
-  <p id="countText">park pop: 00</p>
-</div>
-<div id="dropZone" class="active">
-  <p onclick="document.getElementById('filePicker').click()">drop audio file</p>
-</div>
-<input type="file" id="filePicker" accept="audio/*" style="display:none">
+<div id="hud"><h1>ø co. / idk man</h1><p>a park</p></div>
+<div id="dropZone" class="active"><p onclick="document.getElementById('fp').click()">drop audio</p></div>
+<input type="file" id="fp" accept="audio/*" style="display:none">
 <div id="transport">
   <span id="trackName">---</span>
   <button id="playBtn">&#9654;</button>
-  <div id="progressWrap" onclick="seekAudio(event)">
-    <div id="progressTrack"><div id="progressFill"></div></div>
-  </div>
-  <span id="timeDisplay">0:00 / 0:00</span>
+  <div id="progressWrap" onclick="seekA(event)"><div id="progressTrack"><div id="progressFill"></div></div></div>
+  <span id="timeDisplay">0:00</span>
 </div>
 <script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let W, H, t = 0;
-let mx = 0, my = 0;
-
-function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+const C = document.getElementById('c'), X = C.getContext('2d');
+let W, H, t = 0, mx = 0, my = 0;
+const resize = () => { W = C.width = innerWidth; H = C.height = innerHeight; };
 addEventListener('resize', resize); resize();
 addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
 
-// --- AUDIO ENGINE ---
-const audio = {
-  ctx: null, analyser: null, source: null, element: null, freqData: null,
-  bands: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
-  smoothed: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
-  prev: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
-  hit: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
-  isLoaded: false, fileName: '',
-  init(file) {
-    if (this.element) { this.element.pause(); if (this.source) this.source.disconnect(); URL.revokeObjectURL(this.element.src); }
-    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.ctx.resume();
-    this.element = new Audio();
-    this.element.crossOrigin = 'anonymous';
-    this.element.src = URL.createObjectURL(file);
-    this.fileName = file.name.replace(/\.[^.]+$/, '');
-    this.source = this.ctx.createMediaElementSource(this.element);
-    this.analyser = this.ctx.createAnalyser();
-    this.analyser.fftSize = 2048; this.analyser.smoothingTimeConstant = 0.8;
-    this.source.connect(this.analyser); this.analyser.connect(this.ctx.destination);
-    this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
-    this.isLoaded = true;
+// --- AUDIO ---
+const A = {
+  ctx:null, an:null, src:null, el:null, fd:null,
+  b:{bass:0,low:0,mid:0,hi:0,en:0}, s:{bass:0,low:0,mid:0,hi:0,en:0},
+  p:{bass:0,low:0,mid:0,hi:0,en:0}, hit:{bass:0,low:0,mid:0,hi:0,en:0},
+  ok:false,
+  init(f){
+    if(this.el){this.el.pause();if(this.src)this.src.disconnect();URL.revokeObjectURL(this.el.src);}
+    if(!this.ctx)this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    this.ctx.resume();this.el=new Audio();this.el.crossOrigin='anonymous';
+    this.el.src=URL.createObjectURL(f);
+    this.src=this.ctx.createMediaElementSource(this.el);
+    this.an=this.ctx.createAnalyser();this.an.fftSize=2048;this.an.smoothingTimeConstant=0.8;
+    this.src.connect(this.an);this.an.connect(this.ctx.destination);
+    this.fd=new Uint8Array(this.an.frequencyBinCount);this.ok=true;
     document.getElementById('dropZone').classList.add('loaded');
     document.getElementById('transport').classList.add('visible');
-    document.getElementById('trackName').textContent = this.fileName;
-    this.element.play();
-    document.getElementById('playBtn').innerHTML = '&#9646;&#9646;';
+    document.getElementById('trackName').textContent=f.name.replace(/\.[^.]+$/,'');
+    this.el.play();document.getElementById('playBtn').innerHTML='&#9646;&#9646;';
   },
-  update() {
-    if (!this.isLoaded || !this.analyser) return;
-    this.analyser.getByteFrequencyData(this.freqData);
-    const binHz = this.ctx.sampleRate / this.analyser.fftSize;
-    const bassEnd = Math.round(250 / binHz), lowMidEnd = Math.round(1000 / binHz);
-    const midEnd = Math.round(4000 / binHz), highEnd = Math.min(Math.round(20000 / binHz), this.freqData.length);
-    function avg(data, from, to) { let s = 0; const c = Math.max(1, to - from); for (let i = from; i < to; i++) s += data[i]; return (s / c) / 255; }
-    const raw = { bass: avg(this.freqData, 1, bassEnd), lowMid: avg(this.freqData, bassEnd, lowMidEnd), mid: avg(this.freqData, lowMidEnd, midEnd), high: avg(this.freqData, midEnd, highEnd), energy: avg(this.freqData, 0, this.freqData.length) };
-    const s = this.smoothed;
-    s.bass = s.bass * 0.88 + raw.bass * 0.12; s.lowMid = s.lowMid * 0.85 + raw.lowMid * 0.15;
-    s.mid = s.mid * 0.85 + raw.mid * 0.15; s.high = s.high * 0.82 + raw.high * 0.18;
-    s.energy = s.energy * 0.85 + raw.energy * 0.15;
-    this.bands.bass = Math.min(1, s.bass * 3); this.bands.lowMid = Math.min(1, s.lowMid * 2.8);
-    this.bands.mid = Math.min(1, s.mid * 2.5); this.bands.high = Math.min(1, s.high * 3.5);
-    this.bands.energy = Math.min(1, s.energy * 2.5);
-    for (const k of ['bass', 'lowMid', 'mid', 'high', 'energy']) {
-      const delta = this.bands[k] - this.prev[k];
-      if (delta > 0.05) this.hit[k] = Math.min(1, this.hit[k] + delta * 3);
-      this.hit[k] *= 0.88; if (this.hit[k] < 0.01) this.hit[k] = 0;
-      this.prev[k] = this.bands[k];
-    }
+  upd(){
+    if(!this.ok)return;this.an.getByteFrequencyData(this.fd);
+    const bh=this.ctx.sampleRate/2048,be=Math.round(250/bh),le=Math.round(1000/bh),me=Math.round(4000/bh),he=Math.min(Math.round(20000/bh),this.fd.length);
+    const avg=(d,a,b)=>{let s=0;const c=Math.max(1,b-a);for(let i=a;i<b;i++)s+=d[i];return s/c/255;};
+    const r={bass:avg(this.fd,1,be),low:avg(this.fd,be,le),mid:avg(this.fd,le,me),hi:avg(this.fd,me,he),en:avg(this.fd,0,this.fd.length)};
+    const s=this.s;
+    s.bass=s.bass*.87+r.bass*.13;s.low=s.low*.85+r.low*.15;s.mid=s.mid*.84+r.mid*.16;s.hi=s.hi*.82+r.hi*.18;s.en=s.en*.85+r.en*.15;
+    this.b.bass=Math.min(1,s.bass*3);this.b.low=Math.min(1,s.low*2.8);this.b.mid=Math.min(1,s.mid*2.5);this.b.hi=Math.min(1,s.hi*3.5);this.b.en=Math.min(1,s.en*2.5);
+    for(const k of['bass','low','mid','hi','en']){const d=this.b[k]-this.p[k];if(d>.05)this.hit[k]=Math.min(1,this.hit[k]+d*3);this.hit[k]*=.87;if(this.hit[k]<.01)this.hit[k]=0;this.p[k]=this.b[k];}
   }
 };
+document.addEventListener('dragover',e=>{e.preventDefault();});
+document.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('audio/'))A.init(f);});
+document.getElementById('fp').addEventListener('change',e=>{if(e.target.files[0])A.init(e.target.files[0]);});
+document.getElementById('playBtn').addEventListener('click',()=>{if(!A.el)return;if(A.el.paused){A.ctx.resume();A.el.play();document.getElementById('playBtn').innerHTML='&#9646;&#9646;';}else{A.el.pause();document.getElementById('playBtn').innerHTML='&#9654;';}});
+function seekA(e){if(!A.el)return;const r=document.getElementById('progressWrap').getBoundingClientRect();A.el.currentTime=((e.clientX-r.left)/r.width)*A.el.duration;}
+function updT(){if(!A.el||!A.ok)return;const c=A.el.currentTime,d=A.el.duration||0;document.getElementById('progressFill').style.width=d?`${c/d*100}%`:'0%';const fmt=s=>isNaN(s)?'0:00':`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;document.getElementById('timeDisplay').textContent=fmt(c)+' / '+fmt(d);}
 
-// File input
-document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); });
-document.addEventListener('dragleave', e => { if (!document.contains(e.relatedTarget)) document.getElementById('dropZone').classList.remove('dragover'); });
-document.addEventListener('drop', e => { e.preventDefault(); document.getElementById('dropZone').classList.remove('dragover'); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('audio/')) audio.init(f); });
-document.getElementById('filePicker').addEventListener('change', e => { if (e.target.files[0]) audio.init(e.target.files[0]); });
-document.getElementById('playBtn').addEventListener('click', () => {
-  if (!audio.element) return;
-  if (audio.element.paused) { audio.ctx.resume(); audio.element.play(); document.getElementById('playBtn').innerHTML = '&#9646;&#9646;'; }
-  else { audio.element.pause(); document.getElementById('playBtn').innerHTML = '&#9654;'; }
-});
-function seekAudio(e) { if (!audio.element) return; const r = document.getElementById('progressWrap').getBoundingClientRect(); audio.element.currentTime = ((e.clientX - r.left) / r.width) * audio.element.duration; }
-function fmtTime(s) { if (isNaN(s)) return '0:00'; return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
-function updateTransport() {
-  if (!audio.element || !audio.isLoaded) return;
-  document.getElementById('progressFill').style.width = audio.element.duration ? `${(audio.element.currentTime / audio.element.duration) * 100}%` : '0%';
-  document.getElementById('timeDisplay').textContent = `${fmtTime(audio.element.currentTime)} / ${fmtTime(audio.element.duration)}`;
-}
+// --- SEEDED RANDOM ---
+function R(s){return()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};}
+const rng = R(777);
 
-// Seeded random
-function srand(s) { return function() { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+// --- PARK LAYOUT ---
+// The park has: a pond, paths (curves), grass zones, benches, trees, a hotdog cart
+const POND = { x: 0.65, y: 0.55, rx: 0.08, ry: 0.05 };
 
-// --- PARK GOER TYPES ---
-// Each is a tiny function that draws a figure at (0,0) facing right
-const GOER_TYPES = [
-  // 0: Standing person (circle head + line body)
-  (ctx, color, sz, phase) => {
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(0, -sz * 1.8, sz * 0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 1.4); ctx.lineTo(0, 0); ctx.stroke();
-    // legs
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-sz * 0.3, sz * 0.5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(sz * 0.3, sz * 0.5); ctx.stroke();
-  },
-  // 1: Walking person (animated legs)
-  (ctx, color, sz, phase) => {
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(0, -sz * 1.8, sz * 0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 1.4); ctx.lineTo(0, 0); ctx.stroke();
-    const legSwing = Math.sin(phase * 4) * sz * 0.4;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-legSwing, sz * 0.5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(legSwing, sz * 0.5); ctx.stroke();
-    // arm
-    ctx.beginPath(); ctx.moveTo(0, -sz); ctx.lineTo(legSwing * 0.5, -sz * 0.4); ctx.stroke();
-  },
-  // 2: Sitting person (on bench/ground)
-  (ctx, color, sz, phase) => {
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(0, -sz * 1.2, sz * 0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 0.8); ctx.lineTo(0, -sz * 0.2); ctx.stroke();
-    // bent legs
-    ctx.beginPath(); ctx.moveTo(0, -sz * 0.2); ctx.lineTo(sz * 0.5, -sz * 0.2); ctx.lineTo(sz * 0.5, sz * 0.3); ctx.stroke();
-  },
-  // 3: Dog walker
-  (ctx, color, sz, phase) => {
-    // Person
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(0, -sz * 1.8, sz * 0.35, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 1.4); ctx.lineTo(0, 0); ctx.stroke();
-    const legSwing = Math.sin(phase * 3) * sz * 0.3;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-legSwing, sz * 0.4); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(legSwing, sz * 0.4); ctx.stroke();
-    // Leash
-    ctx.strokeStyle = color + '40'; ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 0.6); ctx.quadraticCurveTo(sz * 1, sz * 0.2, sz * 1.5, 0); ctx.stroke();
-    // Dog (small)
-    ctx.fillStyle = color + '80';
-    ctx.fillRect(sz * 1.2, -sz * 0.2, sz * 0.6, sz * 0.3);
-    ctx.beginPath(); ctx.arc(sz * 1.8, -sz * 0.2, sz * 0.15, 0, Math.PI * 2); ctx.fill();
-  },
-  // 4: Umbrella person
-  (ctx, color, sz, phase) => {
-    // Umbrella
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(0, -sz * 2.6, sz * 0.9, Math.PI, 0); ctx.fill();
-    // Pole
-    ctx.strokeStyle = '#00000030'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 2.6); ctx.lineTo(0, -sz * 0.8); ctx.stroke();
-    // Person underneath
-    ctx.fillStyle = '#00000040';
-    ctx.beginPath(); ctx.arc(0, -sz * 0.8, sz * 0.3, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#00000030'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 0.5); ctx.lineTo(0, sz * 0.2); ctx.stroke();
-  },
-  // 5: Cyclist
-  (ctx, color, sz, phase) => {
-    // Wheels
-    ctx.strokeStyle = color; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(-sz * 0.5, sz * 0.1, sz * 0.4, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(sz * 0.5, sz * 0.1, sz * 0.4, 0, Math.PI * 2); ctx.stroke();
-    // Frame
-    ctx.beginPath(); ctx.moveTo(-sz * 0.5, sz * 0.1); ctx.lineTo(0, -sz * 0.4); ctx.lineTo(sz * 0.5, sz * 0.1); ctx.stroke();
-    // Rider
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(0, -sz * 0.9, sz * 0.25, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, -sz * 0.65); ctx.lineTo(0, -sz * 0.2); ctx.stroke();
-    // Spokes spin
-    const spoke = phase * 6;
-    for (let i = 0; i < 4; i++) {
-      const a = spoke + i * Math.PI / 2;
-      ctx.beginPath();
-      ctx.moveTo(-sz * 0.5, sz * 0.1);
-      ctx.lineTo(-sz * 0.5 + Math.cos(a) * sz * 0.35, sz * 0.1 + Math.sin(a) * sz * 0.35);
-      ctx.strokeStyle = color + '30'; ctx.lineWidth = 0.5; ctx.stroke();
-    }
-  },
+// Curved paths as bezier control points (normalized 0-1)
+const PATHS = [
+  { p: [[0.05, 0.5], [0.3, 0.45], [0.5, 0.5], [0.95, 0.48]] }, // main horizontal
+  { p: [[0.5, 0.05], [0.48, 0.3], [0.52, 0.6], [0.5, 0.95]] },  // main vertical
+  { p: [[0.15, 0.15], [0.3, 0.3], [0.45, 0.35]] },               // diagonal
+  { p: [[0.7, 0.3], [0.8, 0.5], [0.85, 0.8]] },                  // side path
 ];
 
-// --- PARK ELEMENTS ---
+// --- DRAWING HELPERS ---
+function drawParkPath(pts) {
+  const p = pts.map(([x,y]) => [x*W, y*H]);
+  // Wide gravel
+  X.strokeStyle = '#c8c2b4'; X.lineWidth = 12; X.lineCap = 'round'; X.lineJoin = 'round';
+  X.globalAlpha = 0.2;
+  X.beginPath(); X.moveTo(p[0][0], p[0][1]);
+  if (p.length === 4) X.bezierCurveTo(p[1][0],p[1][1],p[2][0],p[2][1],p[3][0],p[3][1]);
+  else if (p.length === 3) X.quadraticCurveTo(p[1][0],p[1][1],p[2][0],p[2][1]);
+  X.stroke();
+  // Thin center
+  X.strokeStyle = '#b0a898'; X.lineWidth = 1; X.globalAlpha = 0.12;
+  X.setLineDash([4,8]);
+  X.beginPath(); X.moveTo(p[0][0], p[0][1]);
+  if (p.length === 4) X.bezierCurveTo(p[1][0],p[1][1],p[2][0],p[2][1],p[3][0],p[3][1]);
+  else if (p.length === 3) X.quadraticCurveTo(p[1][0],p[1][1],p[2][0],p[2][1]);
+  X.stroke(); X.setLineDash([]); X.globalAlpha = 1;
+}
+
+function drawPond() {
+  const px = POND.x*W, py = POND.y*H, rx = POND.rx*W, ry = POND.ry*H;
+  // Reflection
+  X.fillStyle = '#8ab4c8'; X.globalAlpha = 0.08;
+  X.beginPath(); X.ellipse(px, py, rx*1.1, ry*1.1, 0, 0, Math.PI*2); X.fill();
+  // Water
+  X.fillStyle = '#6a9ab8'; X.globalAlpha = 0.1;
+  X.beginPath(); X.ellipse(px, py, rx, ry, 0, 0, Math.PI*2); X.fill();
+  // Ripple
+  X.strokeStyle = '#6a9ab8'; X.lineWidth = 0.5; X.globalAlpha = 0.06;
+  const rip = Math.sin(t * 0.8) * 5;
+  X.beginPath(); X.ellipse(px, py, rx*0.6+rip, ry*0.6+rip*0.5, 0, 0, Math.PI*2); X.stroke();
+  X.globalAlpha = 1;
+}
+
 function drawTree(x, y, sz) {
-  // Shadow on ground
-  ctx.fillStyle = '#00000005';
-  ctx.beginPath(); ctx.ellipse(x + sz * 0.3, y + 2, sz * 0.9, sz * 0.25, 0.2, 0, Math.PI * 2); ctx.fill();
-  // Trunk
-  ctx.strokeStyle = '#5a4a3a18'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(x, y - sz * 0.7); ctx.lineTo(x - 1, y); ctx.stroke();
-  // Canopy — multiple overlapping circles for volume
-  ctx.fillStyle = '#2a6a2a15';
-  ctx.beginPath(); ctx.arc(x - sz * 0.2, y - sz * 1.3, sz * 0.6, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#3a7a3a12';
-  ctx.beginPath(); ctx.arc(x + sz * 0.2, y - sz * 1.5, sz * 0.7, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#2a5a2a10';
-  ctx.beginPath(); ctx.arc(x, y - sz * 1.7, sz * 0.5, 0, Math.PI * 2); ctx.fill();
+  X.fillStyle='#00000004';X.beginPath();X.ellipse(x+3,y+2,sz*0.7,sz*0.2,0.15,0,Math.PI*2);X.fill();
+  X.strokeStyle='#4a3a2a15';X.lineWidth=1.5;X.beginPath();X.moveTo(x,y-sz*0.5);X.lineTo(x,y);X.stroke();
+  X.fillStyle='#2a6a2a12';X.beginPath();X.arc(x-sz*0.15,y-sz*0.9,sz*0.45,0,Math.PI*2);X.fill();
+  X.fillStyle='#3a7a3a10';X.beginPath();X.arc(x+sz*0.15,y-sz*1.1,sz*0.5,0,Math.PI*2);X.fill();
+  X.fillStyle='#2a5a2a08';X.beginPath();X.arc(x,y-sz*1.3,sz*0.35,0,Math.PI*2);X.fill();
 }
 
-function drawBench(x, y, sz) {
-  // Shadow
-  ctx.fillStyle = '#00000004';
-  ctx.fillRect(x - sz + 2, y + sz * 0.1, sz * 2, sz * 0.2);
-  // Seat
-  ctx.fillStyle = '#5a4a3a12';
-  ctx.fillRect(x - sz, y - sz * 0.2, sz * 2, sz * 0.15);
-  ctx.strokeStyle = '#00000018'; ctx.lineWidth = 1;
-  ctx.strokeRect(x - sz, y - sz * 0.2, sz * 2, sz * 0.15);
-  // Back rest
-  ctx.fillStyle = '#5a4a3a08';
-  ctx.fillRect(x - sz, y - sz * 0.45, sz * 2, sz * 0.1);
+function drawBench(x, y, angle) {
+  X.save(); X.translate(x, y); X.rotate(angle);
+  X.fillStyle='#5a4a3a15';X.fillRect(-8,-2,16,3);
+  X.fillStyle='#5a4a3a10';X.fillRect(-8,-5,16,2);
+  X.strokeStyle='#5a4a3a10';X.lineWidth=1;
+  X.beginPath();X.moveTo(-6,1);X.lineTo(-6,5);X.stroke();
+  X.beginPath();X.moveTo(6,1);X.lineTo(6,5);X.stroke();
+  X.restore();
+}
+
+function drawHotdogCart(x, y) {
+  X.fillStyle='#c44020';X.globalAlpha=0.5;X.fillRect(x-6,y-10,12,8);X.globalAlpha=1;
+  X.fillStyle='#e8d8c0';X.globalAlpha=0.3;X.fillRect(x-7,y-12,14,3);X.globalAlpha=1;
+  // Umbrella
+  X.fillStyle='#c44020';X.globalAlpha=0.35;
+  X.beginPath();X.arc(x,y-18,10,Math.PI,0);X.fill();X.globalAlpha=1;
+  // Wheels
+  X.strokeStyle='#00000025';X.lineWidth=1;
+  X.beginPath();X.arc(x-5,y+1,2.5,0,Math.PI*2);X.stroke();
+  X.beginPath();X.arc(x+5,y+1,2.5,0,Math.PI*2);X.stroke();
+}
+
+// --- PARK CREATURES ---
+// Point along bezier
+function bezPt(pts, t) {
+  const p = pts.map(([x,y])=>[x*W,y*H]);
+  if (p.length===4) {
+    const u=1-t;
+    return [u*u*u*p[0][0]+3*u*u*t*p[1][0]+3*u*t*t*p[2][0]+t*t*t*p[3][0],
+            u*u*u*p[0][1]+3*u*u*t*p[1][1]+3*u*t*t*p[2][1]+t*t*t*p[3][1]];
+  }
+  const u=1-t;
+  return [u*u*p[0][0]+2*u*t*p[1][0]+t*t*p[2][0],u*u*p[0][1]+2*u*t*p[1][1]+t*t*p[2][1]];
+}
+
+const creatures = [];
+const BAND_NAMES = ['bass','low','mid','hi'];
+
+// PATH CREATURES: strollers, runners, cyclists, dog walkers
+for (let i = 0; i < 14; i++) {
+  const pathIdx = Math.floor(rng() * PATHS.length);
+  const speed = 0.0003 + rng() * 0.001;
+  const type = ['stroller','runner','cyclist','dogwalker'][Math.floor(rng() * 4)];
+  const band = BAND_NAMES[Math.floor(rng() * 4)];
+  creatures.push({
+    zone: 'path', type, pathIdx, pathT: rng(), speed,
+    band, sens: 0.3 + rng() * 0.7, bounce: 0,
+    color: ['#1a1a1a','#2850C8','#B81850','#1880D0','#E04520','#1a6a1a'][Math.floor(rng()*6)],
+    size: type==='cyclist'?7:type==='runner'?5:6, dir: rng()>0.5?1:-1,
+    paused: false, pauseUntil: 0
+  });
+}
+
+// GRASS CREATURES: loungers, picnickers, frisbee players, wild children, geese, squirrels
+for (let i = 0; i < 18; i++) {
+  const type = ['lounger','picnic','frisbee','child','goose','squirrel'][Math.floor(rng()*6)];
+  const band = BAND_NAMES[Math.floor(rng() * 4)];
+  // Place on grass (avoid pond and paths roughly)
+  let gx, gy;
+  do { gx = 0.08 + rng()*0.84; gy = 0.08 + rng()*0.84; }
+  while (Math.abs(gx-POND.x)<0.12 && Math.abs(gy-POND.y)<0.08);
+  creatures.push({
+    zone: 'grass', type, homeX: gx*W, homeY: gy*H, x: gx*W, y: gy*H,
+    band, sens: 0.3 + rng() * 0.7, bounce: 0,
+    color: type==='goose'?'#f0f0f0':type==='squirrel'?'#8a6a40':['#1a1a1a','#2850C8','#B81850','#c44020','#1a6a1a'][Math.floor(rng()*5)],
+    size: type==='goose'?3.5:type==='squirrel'?2.5:type==='child'?4.5:5.5,
+    wanderR: type==='frisbee'||type==='child'?60+rng()*40:10+rng()*20,
+    wanderSpeed: type==='child'?0.008+rng()*0.01:type==='frisbee'?0.005+rng()*0.005:0.001+rng()*0.003,
+    wanderPhase: rng()*Math.PI*2, dir: rng()>0.5?1:-1
+  });
+}
+
+// --- DRAW CREATURES ---
+function drawPerson(x, y, sz, color, phase, running) {
+  const stride = running ? 0.6 : 0.35;
+  const legSwing = Math.sin(phase * (running?6:3)) * sz * stride;
+  X.fillStyle = color; X.strokeStyle = color; X.lineWidth = 1.2;
+  // Head
+  X.beginPath(); X.arc(x, y - sz*1.7, sz*0.35, 0, Math.PI*2); X.fill();
+  // Body
+  X.beginPath(); X.moveTo(x, y-sz*1.35); X.lineTo(x, y-sz*0.1); X.stroke();
   // Legs
-  ctx.strokeStyle = '#00000015'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(x - sz * 0.8, y - sz * 0.05); ctx.lineTo(x - sz * 0.8, y + sz * 0.3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(x + sz * 0.8, y - sz * 0.05); ctx.lineTo(x + sz * 0.8, y + sz * 0.3); ctx.stroke();
-}
-
-function drawPath(x1, y1, x2, y2) {
-  // Wider gravel-ish path
-  ctx.strokeStyle = '#00000004'; ctx.lineWidth = 14;
-  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-  // Dashed center line
-  ctx.strokeStyle = '#00000006'; ctx.lineWidth = 1;
-  ctx.setLineDash([3, 8]);
-  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-  ctx.setLineDash([]);
-}
-
-// Grass patches
-function drawGrassPatch(x, y, sz) {
-  ctx.fillStyle = '#4a8a4a06';
-  ctx.beginPath(); ctx.ellipse(x, y, sz, sz * 0.4, 0, 0, Math.PI * 2); ctx.fill();
-}
-
-// Flower clusters
-function drawFlowers(x, y, sz, rng2) {
-  for (let i = 0; i < 5; i++) {
-    const fx = x + (rng2() - 0.5) * sz;
-    const fy = y + (rng2() - 0.5) * sz * 0.4;
-    const colors = ['#CE286718', '#F4613818', '#3D6DF418', '#2C9FF418'];
-    ctx.fillStyle = colors[Math.floor(rng2() * colors.length)];
-    ctx.beginPath(); ctx.arc(fx, fy, 1.5 + rng2() * 1.5, 0, Math.PI * 2); ctx.fill();
+  X.beginPath(); X.moveTo(x, y-sz*0.1); X.lineTo(x-legSwing, y+sz*0.4); X.stroke();
+  X.beginPath(); X.moveTo(x, y-sz*0.1); X.lineTo(x+legSwing, y+sz*0.4); X.stroke();
+  // Arms (if running, pump)
+  if (running) {
+    X.beginPath(); X.moveTo(x, y-sz); X.lineTo(x+legSwing*0.6, y-sz*0.5); X.stroke();
+    X.beginPath(); X.moveTo(x, y-sz); X.lineTo(x-legSwing*0.6, y-sz*0.5); X.stroke();
   }
 }
 
-// --- GENERATE PARK ---
-const rng = srand(42);
-const NUM_GOERS = 24;
-const PALETTE = ['#2850C8', '#E04520', '#B81850', '#1880D0', '#222222', '#1a6a1a', '#6a3510'];
+function drawCyclist(x, y, sz, color, phase) {
+  X.strokeStyle=color;X.lineWidth=0.8;
+  // Wheels
+  X.beginPath();X.arc(x-sz*0.55,y+sz*0.15,sz*0.35,0,Math.PI*2);X.stroke();
+  X.beginPath();X.arc(x+sz*0.55,y+sz*0.15,sz*0.35,0,Math.PI*2);X.stroke();
+  // Frame
+  X.beginPath();X.moveTo(x-sz*0.55,y+sz*0.15);X.lineTo(x-sz*0.1,y-sz*0.3);X.lineTo(x+sz*0.55,y+sz*0.15);X.stroke();
+  X.beginPath();X.moveTo(x-sz*0.1,y-sz*0.3);X.lineTo(x+sz*0.15,y-sz*0.3);X.lineTo(x+sz*0.55,y+sz*0.15);X.stroke();
+  // Rider
+  X.fillStyle=color;X.beginPath();X.arc(x+sz*0.05,y-sz*0.75,sz*0.22,0,Math.PI*2);X.fill();
+  X.beginPath();X.moveTo(x+sz*0.05,y-sz*0.53);X.lineTo(x,y-sz*0.15);X.stroke();
+  // Pedal rotation
+  const pa=phase*5;
+  X.beginPath();X.moveTo(x,y-sz*0.15);X.lineTo(x+Math.cos(pa)*sz*0.2,y-sz*0.15+Math.sin(pa)*sz*0.15);X.stroke();
+}
 
-class ParkGoer {
-  constructor(i) {
-    this.i = i;
-    this.type = Math.floor(rng() * GOER_TYPES.length);
-    this.color = PALETTE[Math.floor(rng() * PALETTE.length)];
-    this.size = 6 + rng() * 5;
+function drawDogWalker(x, y, sz, color, phase) {
+  drawPerson(x, y, sz, color, phase, false);
+  // Leash
+  X.strokeStyle=color+'50';X.lineWidth=0.5;
+  const dogX=x+sz*2, dogY=y+sz*0.1;
+  X.beginPath();X.moveTo(x,y-sz*0.5);X.quadraticCurveTo(x+sz,y+sz*0.4,dogX,dogY);X.stroke();
+  // Dog body
+  X.fillStyle='#6a5a4a';X.globalAlpha=0.5;
+  X.fillRect(dogX-sz*0.35,dogY-sz*0.15,sz*0.5,sz*0.25);
+  // Dog head
+  X.beginPath();X.arc(dogX+sz*0.2,dogY-sz*0.1,sz*0.12,0,Math.PI*2);X.fill();
+  // Tail
+  const tailWag=Math.sin(phase*8)*sz*0.15;
+  X.strokeStyle='#6a5a4a';X.lineWidth=0.8;X.globalAlpha=0.4;
+  X.beginPath();X.moveTo(dogX-sz*0.35,dogY-sz*0.05);X.lineTo(dogX-sz*0.5,dogY-sz*0.25+tailWag);X.stroke();
+  X.globalAlpha=1;
+}
 
-    // Position and movement
-    this.homeX = W * 0.1 + rng() * W * 0.8;
-    this.homeY = H * 0.15 + rng() * H * 0.7;
-    this.x = this.homeX;
-    this.y = this.homeY;
-    this.speed = 0.1 + rng() * 0.4;
-    this.wanderR = 20 + rng() * 80;
-    this.wanderPhase = rng() * Math.PI * 2;
-    this.wanderSpeed = 0.002 + rng() * 0.008;
-    this.label = (rng() * 0.99 + 0.01).toFixed(2);
+function drawGoose(x, y, sz, phase) {
+  X.fillStyle='#e8e8e8';X.globalAlpha=0.7;
+  X.beginPath();X.ellipse(x,y,sz*0.8,sz*0.4,0,0,Math.PI*2);X.fill();
+  // Neck
+  X.strokeStyle='#e0e0e0';X.lineWidth=1.2;X.globalAlpha=0.6;
+  X.beginPath();X.moveTo(x+sz*0.5,y-sz*0.1);X.quadraticCurveTo(x+sz*0.7,y-sz*0.8,x+sz*0.6,y-sz*1);X.stroke();
+  // Head
+  X.fillStyle='#1a1a1a';X.globalAlpha=0.5;
+  X.beginPath();X.arc(x+sz*0.6,y-sz*1,sz*0.12,0,Math.PI*2);X.fill();
+  // Beak
+  X.fillStyle='#c88020';X.globalAlpha=0.5;
+  X.beginPath();X.moveTo(x+sz*0.72,y-sz*1);X.lineTo(x+sz*0.9,y-sz*0.95);X.lineTo(x+sz*0.72,y-sz*0.9);X.fill();
+  X.globalAlpha=1;
+}
 
-    // Social connections
-    this.friends = [];
+function drawSquirrel(x, y, sz, phase) {
+  X.fillStyle='#8a6a40';X.globalAlpha=0.5;
+  X.beginPath();X.ellipse(x,y,sz*0.5,sz*0.35,0,0,Math.PI*2);X.fill();
+  // Head
+  X.beginPath();X.arc(x+sz*0.4,y-sz*0.15,sz*0.2,0,Math.PI*2);X.fill();
+  // Tail (curled up)
+  X.strokeStyle='#8a6a40';X.lineWidth=1.5;X.globalAlpha=0.4;
+  const tw=Math.sin(phase*4)*sz*0.1;
+  X.beginPath();X.moveTo(x-sz*0.4,y);X.quadraticCurveTo(x-sz*0.7,y-sz*0.8+tw,x-sz*0.3,y-sz*0.9);X.stroke();
+  X.globalAlpha=1;
+}
 
-    // Audio personality — each goer responds to a different band
-    const bands = ['bass', 'lowMid', 'mid', 'high'];
-    this.audioBand = bands[Math.floor(rng() * bands.length)];
-    this.audioSensitivity = 0.3 + rng() * 0.7; // how much they respond
-    this.audioDelay = rng() * 0.3; // slight reaction delay (0-0.3s worth of smoothing)
-    this.bounce = 0; // current bounce amount
-    this.headBob = 0; // head bobbing phase offset
-  }
+function drawLounger(x, y, sz, color) {
+  // Lying down person — blanket + body
+  X.fillStyle='#c8b8a0';X.globalAlpha=0.08;
+  X.fillRect(x-sz*1.5,y-sz*0.5,sz*3,sz*1.5);X.globalAlpha=1;
+  // Body (horizontal)
+  X.strokeStyle=color;X.lineWidth=1.2;
+  X.beginPath();X.moveTo(x-sz,y);X.lineTo(x+sz*0.5,y);X.stroke();
+  // Head
+  X.fillStyle=color;X.beginPath();X.arc(x-sz*1.1,y,sz*0.3,0,Math.PI*2);X.fill();
+}
 
-  update() {
-    // Audio reactivity — each goer reacts to their band differently
-    const bandVal = audio.bands[this.audioBand] || 0;
-    const hitVal = audio.hit[this.audioBand] || 0;
+function drawPicnic(x, y, sz, color) {
+  // Blanket
+  X.fillStyle='#c44020';X.globalAlpha=0.08;
+  X.beginPath();X.ellipse(x,y,sz*2,sz*1.2,0.1,0,Math.PI*2);X.fill();X.globalAlpha=1;
+  // Two sitting people
+  X.fillStyle=color;
+  X.beginPath();X.arc(x-sz*0.5,y-sz*0.8,sz*0.3,0,Math.PI*2);X.fill();
+  X.strokeStyle=color;X.lineWidth=1;
+  X.beginPath();X.moveTo(x-sz*0.5,y-sz*0.5);X.lineTo(x-sz*0.5,y+sz*0.1);X.stroke();
+  X.fillStyle='#2850C8';
+  X.beginPath();X.arc(x+sz*0.6,y-sz*0.7,sz*0.28,0,Math.PI*2);X.fill();
+  X.strokeStyle='#2850C8';
+  X.beginPath();X.moveTo(x+sz*0.6,y-sz*0.42);X.lineTo(x+sz*0.6,y+sz*0.15);X.stroke();
+  // Basket
+  X.fillStyle='#8a6a40';X.globalAlpha=0.3;
+  X.fillRect(x-sz*0.2,y-sz*0.1,sz*0.5,sz*0.3);X.globalAlpha=1;
+}
 
-    // Bounce on hits (vertical displacement)
-    this.bounce = this.bounce * 0.85 + hitVal * this.audioSensitivity * 12;
+function drawFrisbeePlayer(x, y, sz, color, phase) {
+  drawPerson(x, y, sz, color, phase, true);
+  // Frisbee disc (orbiting)
+  const fa = phase * 2;
+  const fx = x + Math.cos(fa) * sz * 2.5;
+  const fy = y - sz * 1.5 + Math.sin(fa) * sz;
+  X.fillStyle='#2850C8';X.globalAlpha=0.4;
+  X.beginPath();X.ellipse(fx,fy,sz*0.4,sz*0.12,fa,0,Math.PI*2);X.fill();
+  X.globalAlpha=1;
+}
 
-    // Wander speed modulated by their band
-    const speedMod = 1 + bandVal * this.audioSensitivity * 3;
+function drawChild(x, y, sz, color, phase) {
+  const legSwing = Math.sin(phase * 8) * sz * 0.5;
+  X.fillStyle = color; X.strokeStyle = color; X.lineWidth = 1;
+  X.beginPath(); X.arc(x, y-sz*1.3, sz*0.35, 0, Math.PI*2); X.fill();
+  X.beginPath(); X.moveTo(x, y-sz*0.95); X.lineTo(x, y); X.stroke();
+  X.beginPath(); X.moveTo(x, y); X.lineTo(x-legSwing, y+sz*0.35); X.stroke();
+  X.beginPath(); X.moveTo(x, y); X.lineTo(x+legSwing, y+sz*0.35); X.stroke();
+  // Arms out
+  X.beginPath();X.moveTo(x,y-sz*0.6);X.lineTo(x-sz*0.5-Math.abs(legSwing)*0.3,y-sz*0.3);X.stroke();
+  X.beginPath();X.moveTo(x,y-sz*0.6);X.lineTo(x+sz*0.5+Math.abs(legSwing)*0.3,y-sz*0.3);X.stroke();
+}
 
-    // Gentle wander around home position
-    const wx = Math.sin(t * this.wanderSpeed * speedMod + this.wanderPhase) * (this.wanderR + bandVal * 30 * this.audioSensitivity);
-    const wy = Math.cos(t * this.wanderSpeed * speedMod * 0.7 + this.wanderPhase + 1) * this.wanderR * 0.5;
+// --- UPDATE & DRAW ALL ---
+function updateAndDraw() {
+  const bass=A.b.bass, low=A.b.low, mid=A.b.mid, hi=A.b.hi, en=A.b.en;
 
-    // Mouse gentle attraction
-    const dx = mx - this.x;
-    const dy = my - this.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const attract = Math.max(0, 1 - dist / 250) * 15;
-    const ax = dist > 0 ? (dx / dist) * attract : 0;
-    const ay = dist > 0 ? (dy / dist) * attract : 0;
+  for (const c of creatures) {
+    const bv = A.b[c.band]||0;
+    const hv = A.hit[c.band]||0;
+    c.bounce = c.bounce * 0.85 + hv * c.sens * 10;
 
-    // Energy pull — on high energy, goers gravitate slightly toward center
-    const ePull = audio.bands.energy * this.audioSensitivity * 8;
-    const ecx = (W / 2 - this.x) * ePull * 0.001;
-    const ecy = (H / 2 - this.y) * ePull * 0.001;
+    if (c.zone === 'path') {
+      // Speed modulated by their band
+      let spd = c.speed * (1 + bv * c.sens * 4);
+      // Strollers sometimes pause (on low energy, or random)
+      if (c.type === 'stroller' && !c.paused && rng() < 0.0005 && en < 0.3) {
+        c.paused = true; c.pauseUntil = t + 2 + rng() * 4;
+      }
+      if (c.paused && t > c.pauseUntil) c.paused = false;
+      if (c.paused) spd = 0;
 
-    this.x += (this.homeX + wx + ax - this.x) * 0.02 + ecx;
-    this.y += (this.homeY + wy + ay - this.y) * 0.02 + ecy;
-  }
+      c.pathT += spd * c.dir;
+      if (c.pathT > 1) { c.pathT = 1; c.dir = -1; }
+      if (c.pathT < 0) { c.pathT = 0; c.dir = 1; }
 
-  draw() {
-    const bandVal = audio.bands[this.audioBand] || 0;
-    const hitVal = audio.hit[this.audioBand] || 0;
+      const [px, py] = bezPt(PATHS[c.pathIdx].p, c.pathT);
+      const drawY = py - c.bounce;
 
-    ctx.save();
-    ctx.translate(this.x, this.y - this.bounce);
+      if (c.type === 'stroller') drawPerson(px, drawY, c.size, c.color, t + c.pathIdx, false);
+      else if (c.type === 'runner') drawPerson(px, drawY, c.size, c.color, t*2 + c.pathIdx, true);
+      else if (c.type === 'cyclist') drawCyclist(px, drawY, c.size, c.color, t + c.pathIdx);
+      else if (c.type === 'dogwalker') drawDogWalker(px, drawY, c.size, c.color, t + c.pathIdx);
 
-    // Tiny shadow (wider when bouncing)
-    ctx.fillStyle = '#00000006';
-    ctx.beginPath();
-    ctx.ellipse(0, this.size * 0.5 + 1 + this.bounce, this.size * 0.6 + this.bounce * 0.3, this.size * 0.15, 0, 0, Math.PI * 2);
-    ctx.fill();
+    } else {
+      // Grass creatures — wander
+      const speedMod = 1 + bv * c.sens * 2;
+      const wr = c.wanderR + bv * c.sens * 20;
+      c.x += (c.homeX + Math.sin(t * c.wanderSpeed * speedMod + c.wanderPhase) * wr - c.x) * 0.02;
+      c.y += (c.homeY + Math.cos(t * c.wanderSpeed * speedMod * 0.7 + c.wanderPhase + 1) * wr * 0.5 - c.y) * 0.02;
+      const drawY = c.y - c.bounce;
 
-    // Draw goer — phase modulated by their band for individual rhythm
-    const phaseBoost = bandVal * this.audioSensitivity * 2;
-    GOER_TYPES[this.type](ctx, this.color, this.size, t * (1 + phaseBoost) + this.i);
-
-    // Hit flash — brief colored ring around goer on their band's transient
-    if (hitVal > 0.2) {
-      ctx.beginPath();
-      ctx.arc(0, -this.size * 0.8, this.size * 1.5 + hitVal * 8, 0, Math.PI * 2);
-      ctx.strokeStyle = this.color;
-      ctx.globalAlpha = hitVal * 0.2;
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      if (c.type === 'lounger') drawLounger(c.x, drawY, c.size, c.color);
+      else if (c.type === 'picnic') drawPicnic(c.x, drawY, c.size, c.color);
+      else if (c.type === 'frisbee') drawFrisbeePlayer(c.x, drawY, c.size, c.color, t + c.wanderPhase);
+      else if (c.type === 'child') drawChild(c.x, drawY, c.size, c.color, t * 1.5 + c.wanderPhase);
+      else if (c.type === 'goose') drawGoose(c.x, drawY, c.size, t + c.wanderPhase);
+      else if (c.type === 'squirrel') drawSquirrel(c.x, drawY, c.size, t * 2 + c.wanderPhase);
     }
-
-    ctx.restore();
-
-    // Label — shows band affinity when audio playing
-    ctx.fillStyle = '#00000018';
-    ctx.font = '9px Lekton';
-    const labelText = audio.isLoaded ? this.audioBand.slice(0, 3) : this.label;
-    ctx.fillText(labelText, this.x + this.size + 3, this.y - this.size * 0.5 - this.bounce);
   }
 }
 
-// Generate goers
-const goers = [];
-for (let i = 0; i < NUM_GOERS; i++) goers.push(new ParkGoer(i));
-
-// Generate social connections (random pairs)
-for (let i = 0; i < NUM_GOERS; i++) {
-  const numFriends = Math.floor(rng() * 3);
-  for (let f = 0; f < numFriends; f++) {
-    const j = Math.floor(rng() * NUM_GOERS);
-    if (j !== i && !goers[i].friends.includes(j)) {
-      goers[i].friends.push(j);
-    }
-  }
+// --- STATIC PARK FURNITURE ---
+const parkTrees = [];
+for (let i = 0; i < 14; i++) {
+  let tx, ty;
+  do { tx = 0.05+rng()*0.9; ty = 0.05+rng()*0.9; }
+  while (Math.abs(tx-POND.x)<0.1 && Math.abs(ty-POND.y)<0.07);
+  parkTrees.push({ x: tx*W, y: ty*H, s: 12+rng()*18 });
 }
 
-// Park furniture
-const trees = [];
-for (let i = 0; i < 8; i++) trees.push({ x: W * 0.05 + rng() * W * 0.9, y: H * 0.1 + rng() * H * 0.8, s: 10 + rng() * 15 });
+const parkBenches = [
+  { x: 0.28, y: 0.47, a: 0 }, { x: 0.72, y: 0.46, a: 0.1 },
+  { x: 0.48, y: 0.28, a: 1.5 }, { x: 0.52, y: 0.68, a: 1.6 },
+  { x: 0.15, y: 0.52, a: 0 }, { x: 0.85, y: 0.5, a: 0 },
+];
 
-const benches = [];
-for (let i = 0; i < 4; i++) benches.push({ x: W * 0.15 + rng() * W * 0.7, y: H * 0.2 + rng() * H * 0.6, s: 10 + rng() * 6 });
-
-const grassPatches = [];
-for (let i = 0; i < 12; i++) grassPatches.push({ x: rng() * W, y: rng() * H, s: 30 + rng() * 60 });
-
-const flowerSpots = [];
-for (let i = 0; i < 8; i++) flowerSpots.push({ x: W * 0.1 + rng() * W * 0.8, y: H * 0.1 + rng() * H * 0.8, s: 15 + rng() * 20, seed: Math.floor(rng() * 10000) });
+const CART = { x: 0.38, y: 0.42 };
 
 // --- GRID ---
 function drawGrid() {
-  ctx.strokeStyle = '#00000004';
-  ctx.lineWidth = 0.5;
-  const gs = 40;
-  for (let x = 0; x < W; x += gs) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y < H; y += gs) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
+  X.strokeStyle='#00000003';X.lineWidth=0.5;
+  for(let x=0;x<W;x+=40){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke();}
+  for(let y=0;y<H;y+=40){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke();}
 }
 
-// --- CONNECTION LINES ---
-function drawConnections() {
-  for (const g of goers) {
-    for (const fi of g.friends) {
-      const f = goers[fi];
-      const dx = g.x - f.x;
-      const dy = g.y - f.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      // Only draw if close enough
-      if (dist > 400) continue;
-
-      const highGlow = audio.bands.high || 0;
-      const alpha = Math.max(0.02, (0.08 + highGlow * 0.15) * (1 - dist / 400));
-      ctx.strokeStyle = highGlow > 0.3 ? `rgba(61,109,244,${alpha})` : `rgba(0,0,0,${alpha})`;
-      ctx.lineWidth = 0.6;
-
-      // Curved connection
-      const midX = (g.x + f.x) / 2;
-      const midY = (g.y + f.y) / 2 - 20 - Math.sin(t * 0.3 + g.i) * 10;
-      ctx.beginPath();
-      ctx.moveTo(g.x, g.y - g.size);
-      ctx.quadraticCurveTo(midX, midY, f.x, f.y - f.size);
-      ctx.stroke();
-
-      // Arrow at midpoint
-      const arrowX = midX;
-      const arrowY = midY + 5;
-      ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-      ctx.beginPath();
-      ctx.moveTo(arrowX, arrowY);
-      ctx.lineTo(arrowX - 2, arrowY - 4);
-      ctx.lineTo(arrowX + 2, arrowY - 4);
-      ctx.fill();
-    }
-  }
-}
-
-// --- MAIN LOOP ---
+// --- MAIN ---
 function animate() {
-  audio.update();
-  t += 0.016;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#F5F0E8';
-  ctx.fillRect(0, 0, W, H);
+  A.upd(); t += 0.016;
+  X.clearRect(0,0,W,H);
+  X.fillStyle='#e8e4d8';X.fillRect(0,0,W,H);
 
   drawGrid();
 
-  // Grass patches (background terrain)
-  for (const gp of grassPatches) drawGrassPatch(gp.x, gp.y, gp.s);
+  // Grass tone variation
+  X.fillStyle='#c8d4a8';X.globalAlpha=0.04;
+  X.beginPath();X.ellipse(W*0.3,H*0.35,W*0.15,H*0.1,0.2,0,Math.PI*2);X.fill();
+  X.beginPath();X.ellipse(W*0.7,H*0.7,W*0.12,H*0.08,-0.1,0,Math.PI*2);X.fill();
+  X.beginPath();X.ellipse(W*0.2,H*0.75,W*0.1,H*0.06,0,0,Math.PI*2);X.fill();
+  X.globalAlpha=1;
 
-  // Paths between some benches
-  for (let i = 0; i < benches.length - 1; i++) {
-    drawPath(benches[i].x, benches[i].y, benches[i + 1].x, benches[i + 1].y);
-  }
+  // Paths
+  for (const p of PATHS) drawParkPath(p.p);
 
-  // Flowers
-  for (const fs of flowerSpots) drawFlowers(fs.x, fs.y, fs.s, srand(fs.seed));
+  // Pond
+  drawPond();
 
-  // Trees (behind goers)
-  for (const tr of trees) drawTree(tr.x, tr.y, tr.s);
+  // Trees (back row — top half of screen)
+  for (const tr of parkTrees) if (tr.y < H*0.5) drawTree(tr.x, tr.y, tr.s);
 
   // Benches
-  for (const b of benches) drawBench(b.x, b.y, b.s);
+  for (const b of parkBenches) drawBench(b.x*W, b.y*H, b.a);
 
-  // Connection lines (behind goers)
-  drawConnections();
+  // Hotdog cart
+  drawHotdogCart(CART.x*W, CART.y*H);
 
-  // Update and draw goers (sort by Y for depth)
-  for (const g of goers) g.update();
-  goers.sort((a, b) => a.y - b.y);
-  for (const g of goers) g.draw();
+  // Creatures
+  updateAndDraw();
 
-  // Mouse circle (subtle)
-  ctx.strokeStyle = '#3D6DF410';
-  ctx.lineWidth = 0.6;
-  ctx.beginPath();
-  ctx.arc(mx, my, 60 + Math.sin(t * 1.5) * 10, 0, Math.PI * 2);
-  ctx.stroke();
+  // Trees (front row — bottom half)
+  for (const tr of parkTrees) if (tr.y >= H*0.5) drawTree(tr.x, tr.y, tr.s);
 
-  updateTransport();
-  document.getElementById('countText').textContent = `park pop: ${String(NUM_GOERS).padStart(2, '0')}`;
-
+  updT();
   requestAnimationFrame(animate);
 }
-
-// Handle resize — regenerate positions
-addEventListener('resize', () => {
-  resize();
-  const r = srand(42);
-  for (const g of goers) {
-    g.homeX = W * 0.1 + r() * W * 0.8;
-    g.homeY = H * 0.15 + r() * H * 0.7;
-  }
-});
 
 animate();
 </script>
