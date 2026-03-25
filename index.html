@@ -473,6 +473,214 @@ body.light .footer-right { color: #00000010; }
 body.light .theme-toggle { border-color: #D0C9BD44; color: #999; }
 body.light .theme-toggle:hover { border-color: var(--eh); color: var(--eh); }
 
+/* ─── Selection mode ─── */
+.ref-card.selectable { cursor: crosshair; }
+.ref-card.selectable:hover { border-color: var(--eh); }
+.ref-card.selected { border-color: var(--eh); box-shadow: 0 0 0 1px var(--eh); }
+.ref-card .select-check {
+  position: absolute; top: 10px; right: 10px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--eh); color: #fff;
+  display: none; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; z-index: 2;
+}
+.ref-card.selected .select-check { display: flex; }
+.ref-card .artifact-badge {
+  position: absolute; top: 10px; left: 10px;
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.06em; padding: 2px 7px;
+  border-radius: 3px; background: var(--eh); color: #fff;
+  z-index: 2; display: none;
+}
+.ref-card.has-artifact .artifact-badge { display: block; }
+
+.selection-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  padding: 12px 48px;
+  display: flex; align-items: center; gap: 16px;
+  background: var(--charcoal); border-top: 2px solid var(--eh);
+  z-index: 60;
+  transform: translateY(100%); transition: transform 0.25s ease;
+}
+.selection-bar.visible { transform: translateY(0); }
+.selection-count {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--off-white); letter-spacing: 0.04em;
+}
+.selection-bar-btn {
+  background: var(--eh); color: #fff; border: none;
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.04em; padding: 8px 20px;
+  border-radius: 4px; cursor: pointer; transition: opacity 0.2s;
+}
+.selection-bar-btn:hover { opacity: 0.85; }
+.selection-bar-clear {
+  background: none; border: 1px solid #ffffff20; color: var(--light-gray);
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.04em; padding: 7px 14px;
+  border-radius: 4px; cursor: pointer; transition: all 0.2s;
+}
+.selection-bar-clear:hover { border-color: var(--se); color: var(--se); }
+
+/* ─── Workspace ─── */
+.workspace {
+  padding: 40px 48px 80px;
+  min-height: 100vh;
+}
+.workspace-header {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 32px;
+}
+.workspace-back {
+  background: none; border: 1px solid #ffffff20; color: var(--light-gray);
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.04em; padding: 7px 16px;
+  border-radius: 4px; cursor: pointer; transition: all 0.2s;
+}
+.workspace-back:hover { border-color: var(--eh); color: var(--eh); }
+.workspace-title {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 24px; color: #fff; letter-spacing: -0.02em;
+}
+.workspace-ref-count {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--eh); letter-spacing: 0.04em;
+}
+.workspace-filmstrip {
+  display: flex; gap: 12px; overflow-x: auto;
+  padding-bottom: 16px; margin-bottom: 32px;
+  scrollbar-width: thin; scrollbar-color: #ffffff15 transparent;
+}
+.workspace-filmstrip::-webkit-scrollbar { height: 6px; }
+.workspace-filmstrip::-webkit-scrollbar-thumb { background: #ffffff15; border-radius: 3px; }
+.filmstrip-item {
+  flex-shrink: 0; position: relative; cursor: pointer;
+  border-radius: var(--card-radius); overflow: hidden;
+  border: 1px solid #ffffff10; transition: border-color 0.2s;
+}
+.filmstrip-item:hover { border-color: var(--se); }
+.filmstrip-item img {
+  height: 160px; width: auto; display: block;
+  object-fit: cover; min-width: 120px;
+}
+.filmstrip-item .filmstrip-name {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  font-family: var(--font-mono); font-size: 9px;
+  color: #fff; background: rgba(0,0,0,0.7);
+  padding: 4px 8px; letter-spacing: 0.03em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.filmstrip-item .filmstrip-remove {
+  position: absolute; top: 4px; right: 4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(0,0,0,0.6); color: #fff;
+  border: none; font-size: 11px; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+}
+.filmstrip-item:hover .filmstrip-remove { display: flex; }
+
+.workspace-body {
+  display: grid; grid-template-columns: 1fr 360px; gap: 32px;
+}
+.workspace-notes {
+  background: var(--charcoal); border: 1px solid #ffffff0a;
+  color: var(--off-white); font-family: var(--font-body);
+  font-size: 14px; padding: 20px; border-radius: var(--card-radius);
+  min-height: 300px; resize: vertical; outline: none;
+  line-height: 1.7; transition: border-color 0.2s;
+}
+.workspace-notes::placeholder { color: #ffffff20; }
+.workspace-notes:focus { border-color: var(--eh); }
+
+.workspace-panel {
+  display: flex; flex-direction: column; gap: 16px;
+}
+.workspace-panel-title {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 13px; color: #fff; letter-spacing: 0.02em;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.workspace-input {
+  background: var(--charcoal); border: 1px solid #ffffff0a;
+  color: var(--off-white); font-family: var(--font-body);
+  font-size: 13px; padding: 10px 14px; border-radius: 4px;
+  outline: none; transition: border-color 0.2s; width: 100%;
+}
+.workspace-input::placeholder { color: #ffffff20; }
+.workspace-input:focus { border-color: var(--eh); }
+select.workspace-input { font-family: var(--font-mono); font-size: 12px; }
+.workspace-suggested-tags {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.workspace-actions {
+  display: flex; flex-direction: column; gap: 8px; margin-top: 8px;
+}
+.ws-btn-primary {
+  background: var(--eh); color: #fff; border: none;
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.04em; padding: 10px 20px;
+  border-radius: 4px; cursor: pointer; transition: opacity 0.2s;
+  text-align: center;
+}
+.ws-btn-primary:hover { opacity: 0.85; }
+.ws-btn-secondary {
+  background: none; border: 1px solid #ffffff20; color: var(--light-gray);
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.04em; padding: 9px 20px;
+  border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  text-align: center;
+}
+.ws-btn-secondary:hover { border-color: var(--eh); color: var(--eh); }
+
+.workspace-output {
+  margin-top: 24px; padding: 20px;
+  background: var(--charcoal); border-radius: var(--card-radius);
+  border: 1px solid #ffffff0a;
+}
+.workspace-output p {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--light-gray); margin-bottom: 12px;
+}
+.workspace-output pre {
+  background: var(--rich-black); padding: 16px;
+  border-radius: 4px; font-family: var(--font-mono);
+  font-size: 11px; color: var(--off-white);
+  overflow-x: auto; white-space: pre-wrap; line-height: 1.6;
+}
+
+/* light mode additions */
+body.light .selection-bar { background: #fff; border-color: var(--eh); }
+body.light .selection-count { color: var(--mid-gray); }
+body.light .selection-bar-clear { border-color: #D0C9BD44; color: #999; }
+body.light .workspace-title { color: #000; }
+body.light .workspace-back { border-color: #D0C9BD44; color: #999; }
+body.light .workspace-back:hover { border-color: var(--eh); color: var(--eh); }
+body.light .workspace-notes,
+body.light .workspace-input {
+  background: #fff; border-color: #D0C9BD44; color: var(--mid-gray);
+}
+body.light .workspace-notes::placeholder,
+body.light .workspace-input::placeholder { color: #00000020; }
+body.light .workspace-panel-title { color: #000; }
+body.light .workspace-output { background: #fff; border-color: #D0C9BD30; }
+body.light .workspace-output pre { background: #f5f0e8; color: var(--mid-gray); }
+body.light .filmstrip-item { border-color: #D0C9BD30; }
+
+/* artifact ref thumbnails */
+.artifact-refs {
+  display: flex; gap: 4px; margin-top: 8px;
+}
+.artifact-refs img {
+  width: 32px; height: 32px; object-fit: cover;
+  border-radius: 3px; border: 1px solid #ffffff10;
+}
+.artifact-refs .overflow {
+  width: 32px; height: 32px; border-radius: 3px;
+  background: #ffffff08; display: flex;
+  align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 9px; color: #ffffff30;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .header, .tabs, .toolbar, .gallery-container { padding-left: 24px; padding-right: 24px; }
@@ -514,6 +722,7 @@ body.light .theme-toggle:hover { border-color: var(--eh); color: var(--eh); }
 <div class="toolbar">
   <input class="search-input" type="text" placeholder="search…" oninput="filterCards(this.value)">
   <div id="tag-filters"></div>
+  <button class="filter-btn select-toggle" id="select-toggle" onclick="toggleSelectionMode()">☐ select</button>
   <div class="toolbar-spacer"></div>
   <div class="view-mode">
     <button class="view-btn active" onclick="setView('grid')" title="Grid">
@@ -535,6 +744,55 @@ body.light .theme-toggle:hover { border-color: var(--eh); color: var(--eh); }
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <button class="lightbox-close">ESC</button>
   <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- Selection bar -->
+<div class="selection-bar" id="selection-bar">
+  <span class="selection-count" id="selection-count">0 selected</span>
+  <button class="selection-bar-btn" onclick="openWorkspace()">Open Workspace →</button>
+  <button class="selection-bar-clear" onclick="clearSelection()">clear</button>
+</div>
+
+<!-- Workspace view -->
+<div class="workspace" id="workspace" style="display:none;">
+  <div class="workspace-header">
+    <button class="workspace-back" onclick="closeWorkspace()">← gallery</button>
+    <h2 class="workspace-title">Workspace</h2>
+    <span class="workspace-ref-count" id="workspace-ref-count"></span>
+  </div>
+  <div class="workspace-filmstrip" id="workspace-filmstrip"></div>
+  <div class="workspace-body">
+    <textarea class="workspace-notes" id="workspace-notes" placeholder="Notes, observations, themes…"></textarea>
+    <div class="workspace-panel">
+      <div>
+        <div class="workspace-panel-title">Export</div>
+        <div class="workspace-actions">
+          <button class="ws-btn-secondary" onclick="exportBrief()">↓ Download brief (.md)</button>
+          <button class="ws-btn-secondary" onclick="copyBrief()">⎘ Copy brief to clipboard</button>
+        </div>
+      </div>
+      <div>
+        <div class="workspace-panel-title">Register Artifact</div>
+        <input class="workspace-input" id="artifact-title" type="text" placeholder="Title">
+        <textarea class="workspace-input" id="artifact-desc" placeholder="Description" rows="2"></textarea>
+        <div class="workspace-suggested-tags" id="workspace-suggested-tags"></div>
+        <select class="workspace-input" id="artifact-status">
+          <option value="draft">draft</option>
+          <option value="wip">wip</option>
+          <option value="stable">stable</option>
+        </select>
+        <input class="workspace-input" id="artifact-file" type="text" placeholder="File path (e.g. artifacts/my-viz.html)">
+        <div class="workspace-actions">
+          <button class="ws-btn-primary" onclick="registerArtifact()">Register Artifact</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="workspace-output" id="workspace-output" style="display:none;">
+    <p>Copy this into your ARTIFACTS array:</p>
+    <pre id="artifact-code-output"></pre>
+    <button class="ws-btn-secondary" onclick="copyArtifactCode()" style="margin-top:12px;">⎘ Copy to clipboard</button>
+  </div>
 </div>
 
 <footer class="footer">
@@ -669,8 +927,7 @@ const REFERENCES = [
 
 // Artifacts: add entries here or load from artifacts.json
 const ARTIFACTS = [
-  // Example entry:
-  // { file: "artifacts/helix-visualizer.html", title: "Helix Visualizer", desc: "Five-view interactive HELIX explorer — orbit, tide, field, signal, strand.", tags: ["helix", "lattice", "interactive"], status: "wip", date: "2026-03-24", thumb: "artifacts/thumbs/helix-visualizer.png" },
+  { file: "artifacts/sound-n-art-v1.html", title: "Sound N Art v1", desc: "Interactive geometric sound poster — 6 modules (orbital, wire sphere, nested rects, distorted grid, spirograph, lissajous) with cursor-driven influence fields.", tags: ["generative", "grid", "orbital", "topology"], status: "draft", date: "2026-03-25", refs: ["references/a5c56d8827285de18f79389cc5f0d121.jpg"] },
 ];
 
 // ─── STATE ───
@@ -678,6 +935,17 @@ let currentTab = 'references';
 let currentView = 'grid';
 let searchQuery = '';
 let activeTagFilter = null;
+let selectionMode = false;
+let selectedRefs = new Set(JSON.parse(localStorage.getItem('mir-selected-refs') || '[]'));
+let localArtifacts = JSON.parse(localStorage.getItem('mir-local-artifacts') || '[]');
+
+function getAllArtifacts() { return [...ARTIFACTS, ...localArtifacts]; }
+function saveSelection() { localStorage.setItem('mir-selected-refs', JSON.stringify([...selectedRefs])); }
+function saveLocalArtifacts() { localStorage.setItem('mir-local-artifacts', JSON.stringify(localArtifacts)); }
+
+function getLinkedArtifacts(refFile) {
+  return getAllArtifacts().filter(a => (a.refs || []).includes(refFile));
+}
 
 // ─── RENDER ───
 function render() {
@@ -685,7 +953,8 @@ function render() {
   renderArtifacts();
   renderTagFilters();
   document.getElementById('ref-count').textContent = REFERENCES.length;
-  document.getElementById('artifact-count').textContent = ARTIFACTS.length;
+  document.getElementById('artifact-count').textContent = getAllArtifacts().length;
+  updateSelectionBar();
 }
 
 function renderReferences() {
@@ -709,8 +978,17 @@ function renderReferences() {
     return;
   }
 
-  grid.innerHTML = filtered.map(ref => `
-    <div class="ref-card" onclick="openLightbox('${ref.file}')">
+  grid.innerHTML = filtered.map(ref => {
+    const isSelected = selectedRefs.has(ref.file);
+    const hasArtifact = getLinkedArtifacts(ref.file).length > 0;
+    const classes = ['ref-card', selectionMode ? 'selectable' : '', isSelected ? 'selected' : '', hasArtifact ? 'has-artifact' : ''].filter(Boolean).join(' ');
+    const action = selectionMode
+      ? `toggleRefSelection('${ref.file}')`
+      : `openLightbox('${ref.file}')`;
+    return `
+    <div class="${classes}" onclick="${action}">
+      <div class="select-check">✓</div>
+      <div class="artifact-badge">linked</div>
       <img class="ref-card-img" src="${ref.file}" alt="${ref.name || ''}">
       <div class="ref-card-meta">
         <span class="ref-card-name">${ref.name || ref.file.split('/').pop()}</span>
@@ -718,21 +996,22 @@ function renderReferences() {
           ${(ref.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderArtifacts() {
   const grid = document.getElementById('artifacts-grid');
-  const filtered = filterData(ARTIFACTS, 'title');
+  const all = getAllArtifacts();
+  const filtered = filterData(all, 'title');
 
-  if (filtered.length === 0 && ARTIFACTS.length === 0) {
+  if (filtered.length === 0 && all.length === 0) {
     grid.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">ø</div>
         <div class="empty-state-text">
           No artifacts yet.<br>
-          Drop a visualization into <code>artifacts/</code> and register it here.
+          Select references and open the workspace to create one.
         </div>
       </div>`;
     return;
@@ -743,7 +1022,10 @@ function renderArtifacts() {
     return;
   }
 
-  grid.innerHTML = filtered.map(a => `
+  grid.innerHTML = filtered.map(a => {
+    const refs = (a.refs || []).slice(0, 4);
+    const overflow = (a.refs || []).length - 4;
+    return `
     <div class="artifact-card" onclick="window.open('${a.file}', '_blank')">
       <div class="artifact-preview">
         ${a.thumb
@@ -754,6 +1036,10 @@ function renderArtifacts() {
       <div class="artifact-info">
         <div class="artifact-title">${a.title}</div>
         <div class="artifact-desc">${a.desc || ''}</div>
+        ${refs.length ? `<div class="artifact-refs">
+          ${refs.map(r => `<img src="${r}" alt="" title="${r.split('/').pop()}">`).join('')}
+          ${overflow > 0 ? `<div class="overflow">+${overflow}</div>` : ''}
+        </div>` : ''}
         <div class="artifact-footer">
           <span class="artifact-date">${a.date || ''}</span>
           <div class="artifact-tags">
@@ -761,17 +1047,48 @@ function renderArtifacts() {
           </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderTagFilters() {
-  const data = currentTab === 'references' ? REFERENCES : ARTIFACTS;
+  const data = currentTab === 'references' ? REFERENCES : getAllArtifacts();
   const allTags = [...new Set(data.flatMap(d => d.tags || []))].sort();
   const container = document.getElementById('tag-filters');
   container.innerHTML = allTags.map(t =>
     `<button class="filter-btn ${activeTagFilter === t ? 'active' : ''}" onclick="toggleTag('${t}')">${t}</button>`
   ).join('');
+}
+
+// ─── SELECTION ───
+function toggleSelectionMode() {
+  selectionMode = !selectionMode;
+  document.getElementById('select-toggle').classList.toggle('active', selectionMode);
+  document.getElementById('select-toggle').textContent = selectionMode ? '☑ select' : '☐ select';
+  render();
+}
+
+function toggleRefSelection(file) {
+  if (selectedRefs.has(file)) selectedRefs.delete(file);
+  else selectedRefs.add(file);
+  saveSelection();
+  render();
+}
+
+function clearSelection() {
+  selectedRefs.clear();
+  saveSelection();
+  render();
+}
+
+function updateSelectionBar() {
+  const bar = document.getElementById('selection-bar');
+  const count = selectedRefs.size;
+  const inWorkspace = location.hash === '#workspace';
+  bar.classList.toggle('visible', count > 0 && !inWorkspace);
+  document.getElementById('selection-count').textContent = `${count} selected`;
+  // hide footer when bar is visible to avoid overlap
+  if (!inWorkspace) document.querySelector('.footer').style.display = count > 0 ? 'none' : '';
 }
 
 // ─── INTERACTIONS ───
@@ -824,13 +1141,197 @@ function toggleTheme() {
   document.body.classList.toggle('light');
 }
 
-// Keyboard
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeLightbox();
+// ─── HASH ROUTING ───
+function handleRoute() {
+  const hash = location.hash;
+  if (hash === '#workspace') {
+    showWorkspace();
+  } else {
+    showGallery();
+  }
+}
+
+function showGallery() {
+  document.getElementById('workspace').style.display = 'none';
+  document.querySelector('.header').style.display = '';
+  document.querySelector('.tabs').style.display = '';
+  document.querySelector('.toolbar').style.display = '';
+  document.querySelector('.gallery-container').style.display = '';
+  document.querySelector('.footer').style.display = '';
+  render();
+}
+
+function showWorkspace() {
+  document.querySelector('.header').style.display = 'none';
+  document.querySelector('.tabs').style.display = 'none';
+  document.querySelector('.toolbar').style.display = 'none';
+  document.querySelector('.gallery-container').style.display = 'none';
+  document.querySelector('.footer').style.display = 'none';
+  document.getElementById('selection-bar').classList.remove('visible');
+  document.getElementById('workspace').style.display = '';
+
+  // Populate filmstrip
+  const strip = document.getElementById('workspace-filmstrip');
+  const refs = [...selectedRefs].map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
+  document.getElementById('workspace-ref-count').textContent = `${refs.length} references`;
+
+  strip.innerHTML = refs.map(ref => `
+    <div class="filmstrip-item" title="${ref.name || ''}">
+      <img src="${ref.file}" alt="${ref.name || ''}">
+      <div class="filmstrip-name">${ref.name || ref.file.split('/').pop()}</div>
+      <button class="filmstrip-remove" onclick="event.stopPropagation(); removeFromWorkspace('${ref.file}')">×</button>
+    </div>
+  `).join('');
+
+  // Restore notes
+  document.getElementById('workspace-notes').value = localStorage.getItem('mir-workspace-notes') || '';
+
+  // Suggested tags
+  renderSuggestedTags();
+
+  // Clear any previous output
+  document.getElementById('workspace-output').style.display = 'none';
+}
+
+function openWorkspace() {
+  location.hash = '#workspace';
+}
+
+function closeWorkspace() {
+  location.hash = '';
+}
+
+function removeFromWorkspace(file) {
+  selectedRefs.delete(file);
+  saveSelection();
+  if (selectedRefs.size === 0) {
+    closeWorkspace();
+  } else {
+    showWorkspace();
+  }
+}
+
+function renderSuggestedTags() {
+  const refs = [...selectedRefs].map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
+  const tagCounts = {};
+  refs.forEach(r => (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  const container = document.getElementById('workspace-suggested-tags');
+  container.innerHTML = sorted.map(([tag, count]) =>
+    `<span class="tag" style="cursor:default;">${tag} (${count})</span>`
+  ).join('');
+}
+
+// ─── WORKSPACE NOTES AUTO-SAVE ───
+let notesSaveTimeout;
+document.addEventListener('input', e => {
+  if (e.target.id === 'workspace-notes') {
+    clearTimeout(notesSaveTimeout);
+    notesSaveTimeout = setTimeout(() => {
+      localStorage.setItem('mir-workspace-notes', e.target.value);
+    }, 500);
+  }
 });
 
-// Init
-render();
+// ─── EXPORT BRIEF ───
+function buildBrief() {
+  const refs = [...selectedRefs].map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
+  const notes = document.getElementById('workspace-notes').value || '';
+  const tagCounts = {};
+  refs.forEach(r => (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  const date = new Date().toISOString().split('T')[0];
+
+  let md = `# Artifact Brief — ${date}\n\n`;
+  md += `## Selected References (${refs.length})\n\n`;
+  refs.forEach(r => {
+    md += `- **${r.name}** (${(r.tags || []).join(', ')}) → \`${r.file}\`\n`;
+  });
+  md += `\n## Notes\n\n${notes || '_No notes yet._'}\n`;
+  md += `\n## Suggested Tags\n\n`;
+  md += sorted.map(([t, c]) => `${t} (${c})`).join(', ') + '\n';
+  return md;
+}
+
+function exportBrief() {
+  const md = buildBrief();
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `artifact-brief-${new Date().toISOString().split('T')[0]}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function copyBrief() {
+  navigator.clipboard.writeText(buildBrief()).then(() => {
+    const btn = document.querySelector('[onclick="copyBrief()"]');
+    const orig = btn.textContent;
+    btn.textContent = '✓ copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+// ─── REGISTER ARTIFACT ───
+function registerArtifact() {
+  const title = document.getElementById('artifact-title').value.trim();
+  if (!title) { alert('Title is required.'); return; }
+
+  const refs = [...selectedRefs].map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
+  const tagCounts = {};
+  refs.forEach(r => (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const suggestedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t]) => t);
+
+  const artifact = {
+    file: document.getElementById('artifact-file').value.trim() || `artifacts/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html`,
+    title: title,
+    desc: document.getElementById('artifact-desc').value.trim(),
+    tags: suggestedTags,
+    status: document.getElementById('artifact-status').value,
+    date: new Date().toISOString().split('T')[0],
+    refs: [...selectedRefs],
+  };
+
+  localArtifacts.push(artifact);
+  saveLocalArtifacts();
+
+  // Show code output
+  const code = JSON.stringify(artifact, null, 2)
+    .replace(/"(\w+)":/g, '$1:')
+    .replace(/"/g, '"');
+  document.getElementById('artifact-code-output').textContent = code;
+  document.getElementById('workspace-output').style.display = '';
+
+  render();
+}
+
+function copyArtifactCode() {
+  const code = document.getElementById('artifact-code-output').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.querySelector('[onclick="copyArtifactCode()"]');
+    const orig = btn.textContent;
+    btn.textContent = '✓ copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+// ─── KEYBOARD ───
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('lightbox').classList.contains('open')) {
+      closeLightbox();
+    } else if (location.hash === '#workspace') {
+      closeWorkspace();
+    } else if (selectionMode) {
+      toggleSelectionMode();
+    }
+  }
+});
+
+// ─── INIT ───
+window.addEventListener('hashchange', handleRoute);
+handleRoute();
 </script>
 </body>
 </html>
