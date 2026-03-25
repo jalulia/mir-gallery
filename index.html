@@ -711,7 +711,7 @@ function renderReferences() {
 
   grid.innerHTML = filtered.map(ref => `
     <div class="ref-card" onclick="openLightbox('${ref.file}')">
-      <img class="ref-card-img" src="${ref.file}" alt="${ref.name || ''}" loading="lazy">
+      <img class="ref-card-img" src="${ref.file}" alt="${ref.name || ''}">
       <div class="ref-card-meta">
         <span class="ref-card-name">${ref.name || ref.file.split('/').pop()}</span>
         <div class="ref-card-tags">
