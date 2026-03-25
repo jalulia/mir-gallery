@@ -87,89 +87,242 @@ function updT(){if(!A.el||!A.ok)return;const c=A.el.currentTime,d=A.el.duration|
 // --- SEEDED RANDOM ---
 function R(s){return()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};}
 const rng = R(777);
+function pick(arr) { return arr[Math.floor(rng() * arr.length)]; }
 
 // --- PARK LAYOUT ---
-// The park has: a pond, paths (curves), grass zones, benches, trees, a hotdog cart
-const POND = { x: 0.65, y: 0.55, rx: 0.08, ry: 0.05 };
+const POND = { x: 0.62, y: 0.52, rx: 0.09, ry: 0.06 };
 
-// Curved paths as bezier control points (normalized 0-1)
+// Connected path network (normalized 0-1) — paths share endpoints
 const PATHS = [
-  { p: [[0.05, 0.5], [0.3, 0.45], [0.5, 0.5], [0.95, 0.48]] }, // main horizontal
-  { p: [[0.5, 0.05], [0.48, 0.3], [0.52, 0.6], [0.5, 0.95]] },  // main vertical
-  { p: [[0.15, 0.15], [0.3, 0.3], [0.45, 0.35]] },               // diagonal
-  { p: [[0.7, 0.3], [0.8, 0.5], [0.85, 0.8]] },                  // side path
+  { p: [[0.02, 0.48], [0.18, 0.44], [0.35, 0.46], [0.5, 0.48]] },   // west to center
+  { p: [[0.5, 0.48], [0.62, 0.46], [0.78, 0.44], [0.98, 0.48]] },   // center to east
+  { p: [[0.5, 0.02], [0.48, 0.2], [0.5, 0.35], [0.5, 0.48]] },     // north to center
+  { p: [[0.5, 0.48], [0.5, 0.62], [0.52, 0.78], [0.5, 0.98]] },    // center to south
+  { p: [[0.12, 0.12], [0.25, 0.25], [0.38, 0.38], [0.5, 0.48]] },  // NW diagonal to center
+  { p: [[0.5, 0.48], [0.58, 0.55], [0.68, 0.65], [0.88, 0.85]] },  // center to SE
+  { p: [[0.5, 0.48], [0.55, 0.38], [0.62, 0.32]] },                // center to NE spur
+  { p: [[0.35, 0.46], [0.3, 0.6], [0.25, 0.72]] },                 // west path to SW spur
+  // Loop around the pond
+  { p: [[0.5, 0.48], [0.55, 0.44], [0.62, 0.43], [0.72, 0.46]] },
+  { p: [[0.72, 0.46], [0.76, 0.52], [0.74, 0.6], [0.68, 0.63]] },
+  { p: [[0.68, 0.63], [0.6, 0.64], [0.54, 0.6], [0.5, 0.48]] },   // completes pond loop (roughly)
 ];
 
+// --- APPEARANCE VARIETY ---
+const SKIN_TONES = ['#f0d0a0','#e8c090','#d4a878','#c08860','#8a6040','#6a4030'];
+const SHIRT_COLORS = ['#2850C8','#c84838','#e8a020','#308848','#e0e0e0','#4a4a4a','#d06090','#6080c0','#40a0a0','#8060b0'];
+const PANTS_COLORS = ['#2a3a5a','#4a4a4a','#6a5a40','#3a5a3a','#5a3a3a','#303030'];
+const HAT_COLORS = ['#c84020','#2850C8','#e8d8a0','#4a8a4a','#e0e0e0','#303030'];
+
 // --- DRAWING HELPERS ---
+const OL = '#1a1a1a';
+function fS(c){X.fillStyle=c;X.fill();X.strokeStyle=OL;X.lineWidth=0.8;X.stroke();}
+
+function drawBez(pts) {
+  const p=pts.map(([x,y])=>[x*W,y*H]);
+  X.beginPath();X.moveTo(p[0][0],p[0][1]);
+  if(p.length===4)X.bezierCurveTo(p[1][0],p[1][1],p[2][0],p[2][1],p[3][0],p[3][1]);
+  else if(p.length===3)X.quadraticCurveTo(p[1][0],p[1][1],p[2][0],p[2][1]);
+  else X.lineTo(p[1][0],p[1][1]);
+}
+
 function drawParkPath(pts) {
-  const p = pts.map(([x,y]) => [x*W, y*H]);
-  // Wide gravel path — tan/sandy against green
-  X.strokeStyle = '#c8bda0'; X.lineWidth = 14; X.lineCap = 'round'; X.lineJoin = 'round';
-  X.globalAlpha = 0.7;
-  X.beginPath(); X.moveTo(p[0][0], p[0][1]);
-  if (p.length === 4) X.bezierCurveTo(p[1][0],p[1][1],p[2][0],p[2][1],p[3][0],p[3][1]);
-  else if (p.length === 3) X.quadraticCurveTo(p[1][0],p[1][1],p[2][0],p[2][1]);
-  X.stroke();
-  // Thin center line
-  X.strokeStyle = '#a09880'; X.lineWidth = 1; X.globalAlpha = 0.25;
-  X.setLineDash([4,8]);
-  X.beginPath(); X.moveTo(p[0][0], p[0][1]);
-  if (p.length === 4) X.bezierCurveTo(p[1][0],p[1][1],p[2][0],p[2][1],p[3][0],p[3][1]);
-  else if (p.length === 3) X.quadraticCurveTo(p[1][0],p[1][1],p[2][0],p[2][1]);
-  X.stroke(); X.setLineDash([]); X.globalAlpha = 1;
-}
-
-function drawPond() {
-  const px = POND.x*W, py = POND.y*H, rx = POND.rx*W, ry = POND.ry*H;
-  // Muddy edge
-  X.fillStyle = '#5a7a4a'; X.globalAlpha = 0.4;
-  X.beginPath(); X.ellipse(px, py, rx*1.15, ry*1.15, 0, 0, Math.PI*2); X.fill();
-  // Water
-  X.fillStyle = '#4a7a9a'; X.globalAlpha = 0.6;
-  X.beginPath(); X.ellipse(px, py, rx, ry, 0, 0, Math.PI*2); X.fill();
-  // Ripple
-  X.strokeStyle = '#8ac8e8'; X.lineWidth = 0.5; X.globalAlpha = 0.2;
-  const rip = Math.sin(t * 0.8) * 5;
-  X.beginPath(); X.ellipse(px, py, rx*0.6+rip, ry*0.6+rip*0.5, 0, 0, Math.PI*2); X.stroke();
-  X.globalAlpha = 1;
-}
-
-function drawTree(x, y, sz) {
-  // Shadow
-  X.fillStyle='#00000015';X.beginPath();X.ellipse(x+3,y+2,sz*0.7,sz*0.2,0.15,0,Math.PI*2);X.fill();
-  // Trunk
-  X.strokeStyle='#4a3520';X.globalAlpha=0.5;X.lineWidth=2;X.beginPath();X.moveTo(x,y-sz*0.5);X.lineTo(x,y);X.stroke();X.globalAlpha=1;
-  // Canopy layers — dark green, visible on lighter green ground
-  X.fillStyle='#2a5a20';X.globalAlpha=0.55;X.beginPath();X.arc(x-sz*0.15,y-sz*0.9,sz*0.5,0,Math.PI*2);X.fill();
-  X.fillStyle='#357030';X.globalAlpha=0.45;X.beginPath();X.arc(x+sz*0.15,y-sz*1.1,sz*0.55,0,Math.PI*2);X.fill();
-  X.fillStyle='#2a6025';X.globalAlpha=0.35;X.beginPath();X.arc(x,y-sz*1.3,sz*0.4,0,Math.PI*2);X.fill();
+  // Wide gravel
+  drawBez(pts);
+  X.strokeStyle='#c8bda0';X.lineWidth=16;X.lineCap='round';X.lineJoin='round';X.globalAlpha=0.65;X.stroke();
+  // Edge lines
+  drawBez(pts);
+  X.strokeStyle='#b0a488';X.lineWidth=17;X.globalAlpha=0.12;X.stroke();
   X.globalAlpha=1;
 }
 
-function drawBench(x, y, angle) {
-  X.save(); X.translate(x, y); X.rotate(angle);
-  X.fillStyle='#5a4a3a15';X.fillRect(-8,-2,16,3);
-  X.fillStyle='#5a4a3a10';X.fillRect(-8,-5,16,2);
-  X.strokeStyle='#5a4a3a10';X.lineWidth=1;
-  X.beginPath();X.moveTo(-6,1);X.lineTo(-6,5);X.stroke();
-  X.beginPath();X.moveTo(6,1);X.lineTo(6,5);X.stroke();
+function drawPond() {
+  const px=POND.x*W,py=POND.y*H,rx=POND.rx*W,ry=POND.ry*H;
+  // Muddy bank
+  X.fillStyle='#5a7a4a';X.globalAlpha=0.35;X.beginPath();X.ellipse(px,py,rx*1.2,ry*1.2,0,0,Math.PI*2);X.fill();
+  // Water
+  X.fillStyle='#4a7a9a';X.globalAlpha=0.55;X.beginPath();X.ellipse(px,py,rx,ry,0,0,Math.PI*2);X.fill();
+  // Lighter center
+  X.fillStyle='#6aA0c0';X.globalAlpha=0.15;X.beginPath();X.ellipse(px-rx*0.1,py-ry*0.15,rx*0.5,ry*0.4,0,0,Math.PI*2);X.fill();
+  // Ripples
+  X.strokeStyle='#a0d0e8';X.lineWidth=0.5;X.globalAlpha=0.15;
+  for(let i=0;i<3;i++){const r=Math.sin(t*0.5+i*1.5)*4;X.beginPath();X.ellipse(px+rx*(i-1)*0.2,py,rx*(0.3+i*0.15)+r,ry*(0.3+i*0.12)+r*0.5,0,0,Math.PI*2);X.stroke();}
+  // Lily pads
+  X.globalAlpha=1;
+  const lilyRng=R(123);
+  for(let i=0;i<5;i++){
+    const lx=px+(lilyRng()-0.5)*rx*1.4,ly=py+(lilyRng()-0.5)*ry*1.2;
+    const ls=3+lilyRng()*4;
+    X.fillStyle='#3a8a3a';X.globalAlpha=0.4;
+    X.beginPath();X.arc(lx,ly,ls,0.2,Math.PI*2);X.fill();
+    // Flower on some
+    if(i<2){X.fillStyle='#e8e0d0';X.globalAlpha=0.5;X.beginPath();X.arc(lx+1,ly-1,ls*0.3,0,Math.PI*2);X.fill();}
+  }
+  // Reeds on edges
+  X.strokeStyle='#3a6a2a';X.lineWidth=1;X.globalAlpha=0.3;X.lineCap='round';
+  for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2;
+    const bx=px+Math.cos(a)*rx*1.1,by=py+Math.sin(a)*ry*1.1;
+    const sway=Math.sin(t*0.8+i*0.7)*2;
+    if(i%3!==0)continue;// sparse
+    X.beginPath();X.moveTo(bx,by);X.lineTo(bx+sway,by-8-lilyRng()*6);X.stroke();
+    X.beginPath();X.moveTo(bx+3,by);X.lineTo(bx+3+sway*0.7,by-6-lilyRng()*5);X.stroke();
+  }
+  // Ducks!
+  X.globalAlpha=1;
+  for(let i=0;i<3;i++){
+    const da=t*0.15+i*2.1;
+    const dx=px+Math.cos(da)*rx*0.5,dy=py+Math.sin(da)*ry*0.4;
+    // Body
+    X.fillStyle='#e8e0d0';X.beginPath();X.ellipse(dx,dy,4,2.5,da+Math.PI/2,0,Math.PI*2);fS(i===0?'#3a6a2a':'#e8e0d0');
+    // Head
+    const hx=dx+Math.cos(da)*4,hy=dy+Math.sin(da)*3;
+    X.beginPath();X.arc(hx,hy,2,0,Math.PI*2);fS(i===0?'#2a5020':'#4a3a20');
+    // Beak
+    X.fillStyle='#d4922a';X.beginPath();
+    X.moveTo(hx+Math.cos(da)*2.5,hy+Math.sin(da)*2);
+    X.lineTo(hx+Math.cos(da)*4,hy+Math.sin(da)*1.5);
+    X.lineTo(hx+Math.cos(da)*2.5,hy+Math.sin(da)*1);X.fill();
+    // Wake ripple
+    X.strokeStyle='#a0d0e8';X.lineWidth=0.4;X.globalAlpha=0.15;
+    X.beginPath();X.arc(dx-Math.cos(da)*3,dy-Math.sin(da)*2,3+Math.sin(t+i)*1,da+1.8,da+4.4);X.stroke();
+    X.globalAlpha=1;
+  }
+}
+
+function drawTree(x,y,sz){
+  X.fillStyle='#00000012';X.beginPath();X.ellipse(x+4,y+3,sz*0.8,sz*0.2,0.15,0,Math.PI*2);X.fill();
+  X.strokeStyle='#4a3520';X.globalAlpha=0.55;X.lineWidth=2.5;X.lineCap='round';
+  X.beginPath();X.moveTo(x,y-sz*0.5);X.lineTo(x-1,y+1);X.stroke();
+  // Branch
+  X.lineWidth=1.2;X.beginPath();X.moveTo(x,y-sz*0.7);X.lineTo(x+sz*0.3,y-sz*0.9);X.stroke();
+  X.globalAlpha=1;
+  // Canopy — outlined blobs like the reference
+  X.fillStyle='#2a6020';X.strokeStyle='#1a4015';X.lineWidth=1;
+  X.globalAlpha=0.65;X.beginPath();X.arc(x-sz*0.2,y-sz,sz*0.55,0,Math.PI*2);X.fill();X.stroke();
+  X.fillStyle='#357530';X.globalAlpha=0.55;X.beginPath();X.arc(x+sz*0.2,y-sz*1.2,sz*0.6,0,Math.PI*2);X.fill();X.stroke();
+  X.fillStyle='#2a5a22';X.globalAlpha=0.45;X.beginPath();X.arc(x-sz*0.05,y-sz*1.45,sz*0.42,0,Math.PI*2);X.fill();X.stroke();
+  X.globalAlpha=1;
+}
+
+function drawBench(x,y,angle,occupied){
+  X.save();X.translate(x,y);X.rotate(angle);
+  // Shadow
+  X.fillStyle='#00000008';X.fillRect(-10,3,20,4);
+  // Legs
+  X.strokeStyle='#3a3020';X.lineWidth=1.5;X.globalAlpha=0.5;
+  X.beginPath();X.moveTo(-7,2);X.lineTo(-7,7);X.stroke();
+  X.beginPath();X.moveTo(7,2);X.lineTo(7,7);X.stroke();
+  X.globalAlpha=1;
+  // Seat
+  X.fillStyle='#6a5a3a';X.globalAlpha=0.6;X.fillRect(-10,-2,20,4);
+  X.strokeStyle=OL;X.lineWidth=0.6;X.strokeRect(-10,-2,20,4);
+  // Back rest
+  X.fillStyle='#5a4a2a';X.globalAlpha=0.5;X.fillRect(-10,-6,20,3);
+  X.strokeStyle=OL;X.lineWidth=0.5;X.strokeRect(-10,-6,20,3);
+  X.globalAlpha=1;
+  // Arm rests
+  X.strokeStyle='#3a3020';X.lineWidth=1;
+  X.beginPath();X.moveTo(-10,-6);X.lineTo(-10,2);X.stroke();
+  X.beginPath();X.moveTo(10,-6);X.lineTo(10,2);X.stroke();
   X.restore();
+
+  // Person sitting on bench
+  if(occupied){
+    X.save();X.translate(x,y);X.rotate(angle);
+    const sk=pick(SKIN_TONES),sh=pick(SHIRT_COLORS);
+    // Torso leaning back
+    X.beginPath();X.ellipse(2,- 10,5,7,-0.15,0,Math.PI*2);fS(sh);
+    // Head
+    X.beginPath();X.arc(2,-19,4.5,0,Math.PI*2);fS(sk);
+    // Headphones
+    X.strokeStyle='#3a3a3a';X.lineWidth=1.5;X.beginPath();X.arc(2,-20,5,Math.PI*1.15,Math.PI*1.85);X.stroke();
+    X.fillStyle='#3a3a3a';X.beginPath();X.arc(-3,-18,2,0,Math.PI*2);X.fill();
+    X.beginPath();X.arc(7,-18,2,0,Math.PI*2);X.fill();
+    // Legs stretched out
+    X.strokeStyle=pick(PANTS_COLORS);X.lineWidth=4;X.lineCap='round';
+    X.beginPath();X.moveTo(0,-3);X.lineTo(-4,5);X.stroke();
+    X.beginPath();X.moveTo(2,-3);X.lineTo(6,6);X.stroke();
+    // Shoes
+    X.fillStyle='#e8e0d0';X.beginPath();X.ellipse(-4,6,3,1.5,0.2,0,Math.PI*2);X.fill();
+    X.beginPath();X.ellipse(6,7,3,1.5,-0.1,0,Math.PI*2);X.fill();
+    X.restore();
+  }
 }
 
-function drawHotdogCart(x, y) {
-  X.fillStyle='#c44020';X.globalAlpha=0.5;X.fillRect(x-6,y-10,12,8);X.globalAlpha=1;
-  X.fillStyle='#e8d8c0';X.globalAlpha=0.3;X.fillRect(x-7,y-12,14,3);X.globalAlpha=1;
-  // Umbrella
-  X.fillStyle='#c44020';X.globalAlpha=0.35;
-  X.beginPath();X.arc(x,y-18,10,Math.PI,0);X.fill();X.globalAlpha=1;
+function drawHotdogCart(x,y){
+  // Shadow
+  X.fillStyle='#00000010';X.beginPath();X.ellipse(x,y+5,14,4,0,0,Math.PI*2);X.fill();
+  // Cart body
+  X.fillStyle='#c8483a';X.globalAlpha=0.7;
+  X.beginPath();X.moveTo(x-8,y-8);X.lineTo(x+8,y-8);X.lineTo(x+7,y+1);X.lineTo(x-7,y+1);X.closePath();X.fill();
+  X.strokeStyle=OL;X.lineWidth=0.8;X.stroke();X.globalAlpha=1;
+  // Counter
+  X.fillStyle='#e8d8c0';X.globalAlpha=0.6;X.fillRect(x-9,y-10,18,3);X.globalAlpha=1;
+  X.strokeStyle=OL;X.lineWidth=0.5;X.strokeRect(x-9,y-10,18,3);
+  // Umbrella — striped
+  X.fillStyle='#c84020';X.globalAlpha=0.6;X.beginPath();X.arc(x,y-22,14,Math.PI,0);X.fill();
+  X.fillStyle='#e8e0d0';X.globalAlpha=0.3;
+  for(let i=0;i<4;i++){const a=Math.PI+i*(Math.PI/4);X.beginPath();X.moveTo(x,y-22);X.arc(x,y-22,14,a,a+Math.PI/8);X.fill();}
+  X.globalAlpha=1;
+  // Pole
+  X.strokeStyle='#5a5a5a';X.lineWidth=1.5;X.beginPath();X.moveTo(x,y-22);X.lineTo(x,y-8);X.stroke();
   // Wheels
-  X.strokeStyle='#00000025';X.lineWidth=1;
-  X.beginPath();X.arc(x-5,y+1,2.5,0,Math.PI*2);X.stroke();
-  X.beginPath();X.arc(x+5,y+1,2.5,0,Math.PI*2);X.stroke();
+  X.strokeStyle=OL;X.lineWidth=1.2;
+  X.beginPath();X.arc(x-6,y+3,3,0,Math.PI*2);X.stroke();
+  X.beginPath();X.arc(x+6,y+3,3,0,Math.PI*2);X.stroke();
+  // Cart vendor (standing behind)
+  const vsk=pick(SKIN_TONES);
+  X.beginPath();X.ellipse(x,y-14,4,5,0,0,Math.PI*2);fS('#e8e0e0');
+  X.beginPath();X.arc(x,y-21,3.5,0,Math.PI*2);fS(vsk);
+  // Hat
+  X.fillStyle='#e8e0d0';X.beginPath();X.ellipse(x,y-24,5,1.5,0,0,Math.PI*2);X.fill();
+  X.beginPath();X.arc(x,y-25,3,Math.PI,0);X.fill();
 }
 
-// --- PARK CREATURES ---
-// Point along bezier
+function drawLampPost(x,y){
+  X.strokeStyle='#3a3a3a';X.lineWidth=1.5;X.globalAlpha=0.4;X.lineCap='round';
+  X.beginPath();X.moveTo(x,y);X.lineTo(x,y-22);X.stroke();
+  // Lamp head
+  X.fillStyle='#5a5a5a';X.globalAlpha=0.35;
+  X.beginPath();X.arc(x,y-22,3,Math.PI,0);X.fill();
+  // Light glow
+  X.fillStyle='#f0e8c0';X.globalAlpha=0.06;
+  X.beginPath();X.arc(x,y-20,12,0,Math.PI*2);X.fill();
+  X.globalAlpha=1;
+}
+
+function drawTrashCan(x,y){
+  X.fillStyle='#4a6a4a';X.globalAlpha=0.5;
+  X.fillRect(x-3,y-6,6,7);X.globalAlpha=1;
+  X.strokeStyle=OL;X.lineWidth=0.6;X.strokeRect(x-3,y-6,6,7);
+  // Lid
+  X.fillStyle='#3a5a3a';X.globalAlpha=0.5;X.fillRect(x-4,y-7,8,2);X.globalAlpha=1;
+}
+
+function drawFountain(x,y){
+  // Base
+  X.fillStyle='#8a8a8a';X.globalAlpha=0.3;
+  X.beginPath();X.ellipse(x,y,14,7,0,0,Math.PI*2);X.fill();X.globalAlpha=1;
+  X.strokeStyle='#6a6a6a';X.lineWidth=1;X.globalAlpha=0.3;
+  X.beginPath();X.ellipse(x,y,14,7,0,0,Math.PI*2);X.stroke();
+  // Water basin
+  X.fillStyle='#6a9ab8';X.globalAlpha=0.25;
+  X.beginPath();X.ellipse(x,y-1,10,5,0,0,Math.PI*2);X.fill();
+  // Center spout
+  X.strokeStyle='#8a8a8a';X.lineWidth=2;X.globalAlpha=0.3;
+  X.beginPath();X.moveTo(x,y);X.lineTo(x,y-12);X.stroke();
+  // Water spray
+  X.strokeStyle='#a0d0e8';X.lineWidth=0.8;X.globalAlpha=0.2;
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2+t*0.3;
+    const sp=5+Math.sin(t*2+i)*2;
+    X.beginPath();X.moveTo(x,y-12);X.quadraticCurveTo(x+Math.cos(a)*sp,y-14-sp,x+Math.cos(a)*sp*1.5,y-6);X.stroke();
+  }
+  X.globalAlpha=1;
+}
+
+// --- BEZIER HELPERS ---
 function bezPt(pts, t) {
   const p = pts.map(([x,y])=>[x*W,y*H]);
   if (p.length===4) {
@@ -180,53 +333,77 @@ function bezPt(pts, t) {
   const u=1-t;
   return [u*u*p[0][0]+2*u*t*p[1][0]+t*t*p[2][0],u*u*p[0][1]+2*u*t*p[1][1]+t*t*p[2][1]];
 }
+// Get angle at point on bezier (for facing direction)
+function bezAngle(pts, t) {
+  const dt = 0.005;
+  const [x1,y1] = bezPt(pts, Math.max(0, t - dt));
+  const [x2,y2] = bezPt(pts, Math.min(1, t + dt));
+  return Math.atan2(y2 - y1, x2 - x1);
+}
 
 const creatures = [];
 const BAND_NAMES = ['bass','low','mid','hi'];
 
-// PATH CREATURES: strollers, runners, cyclists, dog walkers
-for (let i = 0; i < 14; i++) {
-  const pathIdx = Math.floor(rng() * PATHS.length);
-  const type = ['stroller','runner','cyclist','dogwalker'][Math.floor(rng() * 4)];
-  const speed = type==='runner'?0.0004+rng()*0.0003:type==='cyclist'?0.0003+rng()*0.0004:0.00008+rng()*0.00015;
-  const band = BAND_NAMES[Math.floor(rng() * 4)];
+// Give each creature unique appearance
+function makeAppearance() {
+  return { skin: pick(SKIN_TONES), shirt: pick(SHIRT_COLORS), pants: pick(PANTS_COLORS), hat: rng()>0.5?pick(HAT_COLORS):null, hair: pick(['#2a1a0a','#5a3a1a','#8a6a40','#1a1a1a','#c8a060']) };
+}
+
+// PATH CREATURES — more variety in types, distributed across paths
+const pathTypes = ['stroller','stroller','stroller','runner','runner','cyclist','cyclist','dogwalker','dogwalker','stroller','jogger','cyclist','stroller','dogwalker','runner','stroller'];
+for (let i = 0; i < pathTypes.length; i++) {
+  const type = pathTypes[i];
+  const pathIdx = i % PATHS.length; // distribute across all paths
+  const speed = type==='runner'||type==='jogger'?0.0003+rng()*0.0002:type==='cyclist'?0.0002+rng()*0.0003:0.00005+rng()*0.0001;
   creatures.push({
-    zone: 'path', type, pathIdx, pathT: rng(), speed,
-    band, sens: 0.3 + rng() * 0.7, bounce: 0,
-    color: ['#1a1a1a','#2850C8','#B81850','#1880D0','#E04520','#1a6a1a'][Math.floor(rng()*6)],
-    size: type==='cyclist'?8:type==='runner'?7:8, dir: rng()>0.5?1:-1,
-    paused: false, pauseUntil: 0
+    zone:'path', type, pathIdx, pathT:rng(), speed, angle:0,
+    band:pick(BAND_NAMES), sens:0.3+rng()*0.7, bounce:0,
+    app:makeAppearance(), size:type==='cyclist'?9:8,
+    dir:rng()>0.5?1:-1, paused:false, pauseUntil:0,
+    // strollers occasionally stop and sit on nearest bench
+    stopChance: type==='stroller'?0.0003:0
   });
 }
 
-// GRASS CREATURES: loungers, picnickers, frisbee players, wild children, geese, squirrels
-for (let i = 0; i < 18; i++) {
-  const type = ['lounger','picnic','frisbee','child','goose','squirrel'][Math.floor(rng()*6)];
-  const band = BAND_NAMES[Math.floor(rng() * 4)];
-  // Place on grass (avoid pond and paths roughly)
+// GRASS CREATURES — specific archetypes with variety
+const grassTypes = [
+  'lounger','lounger','lounger',  // people lying on blankets reading
+  'picnic','picnic',               // groups having picnics
+  'frisbee','frisbee',             // frisbee pair
+  'child','child','child',         // wild kids
+  'goose','goose','goose','goose','goose', // flock near pond
+  'squirrel','squirrel','squirrel',// in trees
+  'yoga',                          // person doing yoga
+  'reader',                        // person sitting cross-legged reading
+];
+for (let i = 0; i < grassTypes.length; i++) {
+  const type = grassTypes[i];
   let gx, gy;
-  do { gx = 0.08 + rng()*0.84; gy = 0.08 + rng()*0.84; }
-  while (Math.abs(gx-POND.x)<0.12 && Math.abs(gy-POND.y)<0.08);
+  // Place geese near pond, squirrels near trees, others on open grass
+  if (type === 'goose') {
+    gx = POND.x + (rng()-0.5)*0.12; gy = POND.y + (rng()-0.5)*0.08;
+  } else if (type === 'squirrel') {
+    gx = 0.1+rng()*0.8; gy = 0.1+rng()*0.8;
+  } else {
+    do { gx=0.08+rng()*0.84; gy=0.08+rng()*0.84; }
+    while ((Math.abs(gx-POND.x)<0.12&&Math.abs(gy-POND.y)<0.1)||(Math.abs(gx-0.5)<0.05&&Math.abs(gy-0.48)<0.05));
+  }
   creatures.push({
-    zone: 'grass', type, homeX: gx*W, homeY: gy*H, x: gx*W, y: gy*H,
-    band, sens: 0.3 + rng() * 0.7, bounce: 0,
-    color: type==='goose'?'#f0f0f0':type==='squirrel'?'#8a6a40':['#1a1a1a','#2850C8','#B81850','#c44020','#1a6a1a'][Math.floor(rng()*5)],
-    size: type==='goose'?4:type==='squirrel'?3:type==='child'?6:7,
-    wanderR: type==='frisbee'||type==='child'?60+rng()*40:10+rng()*20,
-    wanderSpeed: type==='child'?0.008+rng()*0.01:type==='frisbee'?0.005+rng()*0.005:0.001+rng()*0.003,
-    wanderPhase: rng()*Math.PI*2, dir: rng()>0.5?1:-1
+    zone:'grass', type, homeX:gx*W, homeY:gy*H, x:gx*W, y:gy*H,
+    band:pick(BAND_NAMES), sens:0.3+rng()*0.7, bounce:0,
+    app:makeAppearance(),
+    size:type==='goose'?4.5:type==='squirrel'?3:type==='child'?6:7,
+    wanderR:type==='frisbee'||type==='child'?50+rng()*30:type==='goose'?15+rng()*20:5+rng()*10,
+    wanderSpeed:type==='child'?0.006+rng()*0.008:type==='goose'?0.003+rng()*0.004:type==='frisbee'?0.004+rng()*0.004:0.0005+rng()*0.001,
+    wanderPhase:rng()*Math.PI*2, dir:rng()>0.5?1:-1,
+    companionIdx: type==='frisbee'? (i>0&&grassTypes[i-1]==='frisbee'?creatures.length-1:-1) : -1
   });
 }
 
 // --- DRAW CREATURES (flat color, bold outline, illustrated style) ---
-const OL = '#2a2a2a'; // outline color
-const SKIN = '#e8c8a0'; // skin tone
 
-// Helper: outlined filled shape
-function fillStroke(color) { X.fillStyle=color; X.fill(); X.strokeStyle=OL; X.lineWidth=1; X.stroke(); }
-
-function drawPerson(x, y, sz, color, phase, running) {
-  const s = sz * 1.8; // scale up
+function drawPerson(x, y, sz, app, phase, running) {
+  const s = sz * 1.8;
   const stride = running ? 0.5 : 0.25;
   const legSwing = Math.sin(phase * (running?5:2.5)) * s * stride;
   const armSwing = running ? legSwing * 0.6 : Math.sin(phase * 1.5) * s * 0.1;
@@ -234,35 +411,38 @@ function drawPerson(x, y, sz, color, phase, running) {
   // Shadow
   X.fillStyle='#00000012'; X.beginPath(); X.ellipse(x, y+2, s*0.4, s*0.1, 0, 0, Math.PI*2); X.fill();
 
-  // Back leg
-  X.beginPath(); X.moveTo(x, y-s*0.35); X.lineTo(x+legSwing, y); X.lineTo(x+legSwing, y+s*0.02);
-  X.strokeStyle=OL; X.lineWidth=s*0.14; X.lineCap='round'; X.stroke();
-  // Shoe
-  X.fillStyle='#3a3a3a'; X.beginPath(); X.ellipse(x+legSwing, y, s*0.08, s*0.04, 0, 0, Math.PI*2); X.fill();
+  // Back leg (pants)
+  X.strokeStyle=app.pants; X.lineWidth=s*0.13; X.lineCap='round';
+  X.beginPath(); X.moveTo(x, y-s*0.35); X.lineTo(x+legSwing, y); X.stroke();
+  X.fillStyle='#f0ece0'; X.beginPath(); X.ellipse(x+legSwing, y+1, s*0.08, s*0.04, 0, 0, Math.PI*2); X.fill(); // shoe
 
-  // Body / torso (filled rounded rect)
-  X.beginPath();
-  X.ellipse(x, y-s*0.55, s*0.2, s*0.25, 0, 0, Math.PI*2);
-  fillStroke(color);
+  // Torso
+  X.beginPath(); X.ellipse(x, y-s*0.55, s*0.2, s*0.25, 0, 0, Math.PI*2); fS(app.shirt);
 
   // Front leg
-  X.beginPath(); X.moveTo(x, y-s*0.35); X.lineTo(x-legSwing, y); X.lineTo(x-legSwing, y+s*0.02);
-  X.strokeStyle=OL; X.lineWidth=s*0.14; X.lineCap='round'; X.stroke();
-  X.fillStyle='#3a3a3a'; X.beginPath(); X.ellipse(x-legSwing, y, s*0.08, s*0.04, 0, 0, Math.PI*2); X.fill();
+  X.strokeStyle=app.pants; X.lineWidth=s*0.13; X.lineCap='round';
+  X.beginPath(); X.moveTo(x, y-s*0.35); X.lineTo(x-legSwing, y); X.stroke();
+  X.fillStyle='#f0ece0'; X.beginPath(); X.ellipse(x-legSwing, y+1, s*0.08, s*0.04, 0, 0, Math.PI*2); X.fill();
 
   // Arms
-  X.strokeStyle=SKIN; X.lineWidth=s*0.08; X.lineCap='round';
+  X.strokeStyle=app.skin; X.lineWidth=s*0.07; X.lineCap='round';
   X.beginPath(); X.moveTo(x-s*0.18, y-s*0.6); X.lineTo(x-s*0.25-armSwing, y-s*0.35); X.stroke();
   X.beginPath(); X.moveTo(x+s*0.18, y-s*0.6); X.lineTo(x+s*0.25+armSwing, y-s*0.35); X.stroke();
 
   // Head
-  X.beginPath(); X.arc(x, y-s*0.85, s*0.15, 0, Math.PI*2); fillStroke(SKIN);
+  X.beginPath(); X.arc(x, y-s*0.85, s*0.15, 0, Math.PI*2); fS(app.skin);
   // Hair
-  X.fillStyle='#3a2a1a'; X.beginPath(); X.arc(x, y-s*0.9, s*0.14, Math.PI, 0); X.fill();
+  X.fillStyle=app.hair; X.beginPath(); X.arc(x, y-s*0.9, s*0.14, Math.PI*1.1, -0.1); X.fill();
+  // Hat (if has one)
+  if(app.hat){
+    X.fillStyle=app.hat; X.beginPath(); X.ellipse(x, y-s*0.95, s*0.18, s*0.04, 0, 0, Math.PI*2); X.fill();
+    X.beginPath(); X.arc(x, y-s*0.97, s*0.1, Math.PI, 0); X.fill();
+    X.strokeStyle=OL;X.lineWidth=0.5;X.stroke();
+  }
 }
 
-function drawCyclist(x, y, sz, color, phase) {
-  const s = sz * 2;
+function drawCyclist(x, y, sz, app, phase) {
+  const s = sz * 2; const color = app.shirt;
   const wheelR = s * 0.22;
   const pa = phase * 4;
 
@@ -293,9 +473,9 @@ function drawCyclist(x, y, sz, color, phase) {
   X.beginPath(); X.moveTo(x, y-s*0.28); X.lineTo(x+Math.cos(pa)*s*0.1, y+Math.sin(pa)*s*0.08); X.stroke();
 
   // Head
-  X.beginPath(); X.arc(x+s*0.08, y-s*0.62, s*0.1, 0, Math.PI*2); fillStroke(SKIN);
+  X.beginPath(); X.arc(x+s*0.08, y-s*0.62, s*0.1, 0, Math.PI*2); fS(app.skin);
   // Helmet
-  X.fillStyle='#e04520'; X.beginPath(); X.arc(x+s*0.08, y-s*0.66, s*0.1, Math.PI, 0); X.fill();
+  X.fillStyle=app.hat||'#e04520'; X.beginPath(); X.arc(x+s*0.08, y-s*0.66, s*0.1, Math.PI, 0); X.fill();
   X.strokeStyle=OL; X.lineWidth=0.8; X.stroke();
 
   // Basket on back
@@ -305,9 +485,9 @@ function drawCyclist(x, y, sz, color, phase) {
   X.globalAlpha=1;
 }
 
-function drawDogWalker(x, y, sz, color, phase) {
+function drawDogWalker(x, y, sz, app, phase) {
   const s = sz * 1.8;
-  drawPerson(x, y, sz, color, phase, false);
+  drawPerson(x, y, sz, app, phase, false);
 
   // Leash
   const dogX = x + s*1.2, dogY = y - s*0.05;
@@ -366,30 +546,80 @@ function drawSquirrel(x, y, sz, phase) {
   fillStroke('#a07a48');
 }
 
-function drawLounger(x, y, sz, color) {
+function drawLounger(x, y, sz, app) {
   const s = sz * 2;
   // Blanket
-  X.beginPath();
+  X.fillStyle=app.shirt+'30'; X.beginPath();
   X.moveTo(x-s*0.6, y-s*0.2); X.lineTo(x+s*0.6, y-s*0.2);
-  X.lineTo(x+s*0.55, y+s*0.2); X.lineTo(x-s*0.55, y+s*0.2); X.closePath();
-  fillStroke('#c8483828');
-  X.fillStyle='#c84838'; X.globalAlpha=0.2; X.fill(); X.globalAlpha=1;
+  X.lineTo(x+s*0.55, y+s*0.2); X.lineTo(x-s*0.55, y+s*0.2); X.closePath(); X.fill();
+  X.strokeStyle=app.shirt+'50'; X.lineWidth=0.6; X.stroke();
 
   // Body lying down
-  X.beginPath(); X.ellipse(x, y-s*0.05, s*0.35, s*0.1, 0, 0, Math.PI*2); fillStroke(color);
-  // Head with hat
-  X.beginPath(); X.arc(x-s*0.35, y-s*0.05, s*0.1, 0, Math.PI*2); fillStroke(SKIN);
-  // Sun hat
-  X.fillStyle='#e8d8a0'; X.beginPath(); X.ellipse(x-s*0.35, y-s*0.12, s*0.14, s*0.04, 0, 0, Math.PI*2); X.fill();
-  X.beginPath(); X.arc(x-s*0.35, y-s*0.14, s*0.08, Math.PI, 0); X.fill();
-  X.strokeStyle=OL; X.lineWidth=0.6; X.stroke();
-  // Book
-  X.fillStyle='#e8e0d0'; X.fillRect(x+s*0.1, y-s*0.12, s*0.08, s*0.1);
-  X.strokeStyle=OL; X.lineWidth=0.5; X.strokeRect(x+s*0.1, y-s*0.12, s*0.08, s*0.1);
+  X.beginPath(); X.ellipse(x, y-s*0.05, s*0.35, s*0.1, 0, 0, Math.PI*2); fS(app.shirt);
+  // Head
+  X.beginPath(); X.arc(x-s*0.35, y-s*0.05, s*0.1, 0, Math.PI*2); fS(app.skin);
+  // Sun hat covering face
+  X.fillStyle='#e8d8a0'; X.beginPath(); X.ellipse(x-s*0.35, y-s*0.12, s*0.14, s*0.05, 0.1, 0, Math.PI*2); X.fill();
+  X.strokeStyle=OL; X.lineWidth=0.5; X.stroke();
+  // Book or phone near hand
+  X.fillStyle='#e8e0d0'; X.fillRect(x+s*0.15, y-s*0.1, s*0.07, s*0.09);
+  X.strokeStyle=OL; X.lineWidth=0.4; X.strokeRect(x+s*0.15, y-s*0.1, s*0.07, s*0.09);
+  // Sandals kicked off
+  X.fillStyle='#c0a880'; X.globalAlpha=0.4;
+  X.beginPath(); X.ellipse(x+s*0.45, y+s*0.15, s*0.05, s*0.025, 0.3, 0, Math.PI*2); X.fill();
+  X.beginPath(); X.ellipse(x+s*0.5, y+s*0.12, s*0.05, s*0.025, -0.2, 0, Math.PI*2); X.fill();
+  X.globalAlpha=1;
 }
 
-function drawPicnic(x, y, sz, color) {
-  const s = sz * 2;
+function drawYoga(x, y, sz, app) {
+  const s = sz * 1.8;
+  // Mat
+  X.fillStyle='#6080b0'; X.globalAlpha=0.2;
+  X.beginPath(); X.ellipse(x, y, s*0.5, s*0.25, 0, 0, Math.PI*2); X.fill(); X.globalAlpha=1;
+  // Person in tree pose — one leg, arms up
+  X.strokeStyle=app.pants; X.lineWidth=s*0.1; X.lineCap='round';
+  X.beginPath(); X.moveTo(x, y-s*0.1); X.lineTo(x, y+s*0.15); X.stroke(); // standing leg
+  // Bent leg
+  X.beginPath(); X.moveTo(x, y-s*0.15); X.lineTo(x+s*0.12, y-s*0.05); X.stroke();
+  // Torso
+  X.beginPath(); X.ellipse(x, y-s*0.4, s*0.13, s*0.22, 0, 0, Math.PI*2); fS(app.shirt);
+  // Arms up (namaste-ish)
+  X.strokeStyle=app.skin; X.lineWidth=s*0.06;
+  X.beginPath(); X.moveTo(x-s*0.1, y-s*0.5); X.lineTo(x-s*0.05, y-s*0.8); X.stroke();
+  X.beginPath(); X.moveTo(x+s*0.1, y-s*0.5); X.lineTo(x+s*0.05, y-s*0.8); X.stroke();
+  // Head
+  X.beginPath(); X.arc(x, y-s*0.68, s*0.1, 0, Math.PI*2); fS(app.skin);
+  X.fillStyle=app.hair; X.beginPath(); X.arc(x, y-s*0.72, s*0.09, Math.PI*1.1, -0.1); X.fill();
+}
+
+function drawReader(x, y, sz, app) {
+  const s = sz * 1.8;
+  // Sitting cross-legged
+  X.strokeStyle=app.pants; X.lineWidth=s*0.12; X.lineCap='round';
+  X.beginPath(); X.moveTo(x-s*0.15, y); X.lineTo(x+s*0.15, y-s*0.05); X.stroke(); // crossed legs
+  X.beginPath(); X.moveTo(x+s*0.15, y); X.lineTo(x-s*0.1, y-s*0.08); X.stroke();
+  // Torso
+  X.beginPath(); X.ellipse(x, y-s*0.35, s*0.15, s*0.2, 0, 0, Math.PI*2); fS(app.shirt);
+  // Arms holding book
+  X.strokeStyle=app.skin; X.lineWidth=s*0.06;
+  X.beginPath(); X.moveTo(x-s*0.12, y-s*0.35); X.lineTo(x, y-s*0.15); X.stroke();
+  X.beginPath(); X.moveTo(x+s*0.12, y-s*0.35); X.lineTo(x, y-s*0.15); X.stroke();
+  // Book
+  X.fillStyle='#d0c8b0'; X.fillRect(x-s*0.06, y-s*0.2, s*0.12, s*0.08);
+  X.strokeStyle=OL; X.lineWidth=0.4; X.strokeRect(x-s*0.06, y-s*0.2, s*0.12, s*0.08);
+  // Head
+  X.beginPath(); X.arc(x, y-s*0.58, s*0.12, 0, Math.PI*2); fS(app.skin);
+  X.fillStyle=app.hair; X.beginPath(); X.arc(x, y-s*0.62, s*0.11, Math.PI*1.1, -0.1); X.fill();
+  // Headphones!
+  X.strokeStyle='#3a3a3a'; X.lineWidth=1.2;
+  X.beginPath(); X.arc(x, y-s*0.62, s*0.13, Math.PI*1.15, Math.PI*1.85); X.stroke();
+  X.fillStyle='#3a3a3a';
+  X.beginPath(); X.arc(x-s*0.12, y-s*0.55, s*0.03, 0, Math.PI*2); X.fill();
+  X.beginPath(); X.arc(x+s*0.12, y-s*0.55, s*0.03, 0, Math.PI*2); X.fill();
+}
+
+function drawPicnic(x, y, sz, app) {
+  const s = sz * 2; const color = app.shirt;
   // Blanket (checkered feel)
   X.fillStyle='#c84838'; X.globalAlpha=0.25;
   X.beginPath(); X.ellipse(x, y, s*0.5, s*0.3, 0.05, 0, Math.PI*2); X.fill();
@@ -414,8 +644,8 @@ function drawPicnic(x, y, sz, color) {
   X.arc(x+s*0.015, y+s*0.02, s*0.05, Math.PI, 0); X.stroke();
 }
 
-function drawFrisbeePlayer(x, y, sz, color, phase) {
-  drawPerson(x, y, sz, color, phase, true);
+function drawFrisbeePlayer(x, y, sz, app, phase) {
+  drawPerson(x, y, sz, app, phase, true);
   const s = sz * 1.8;
   // Frisbee
   const fa = phase * 2.5;
@@ -424,8 +654,8 @@ function drawFrisbeePlayer(x, y, sz, color, phase) {
   X.beginPath(); X.ellipse(fx, fy, s*0.15, s*0.05, fa, 0, Math.PI*2); fillStroke('#2850C8');
 }
 
-function drawChild(x, y, sz, color, phase) {
-  const s = sz * 1.5;
+function drawChild(x, y, sz, app, phase) {
+  const s = sz * 1.5; const color = app.shirt;
   const legSwing = Math.sin(phase * 7) * s * 0.4;
 
   // Shadow
@@ -476,10 +706,17 @@ function updateAndDraw() {
       const [px, py] = bezPt(PATHS[c.pathIdx].p, c.pathT);
       const drawY = py - c.bounce;
 
-      if (c.type === 'stroller') drawPerson(px, drawY, c.size, c.color, t + c.pathIdx, false);
-      else if (c.type === 'runner') drawPerson(px, drawY, c.size, c.color, t*2 + c.pathIdx, true);
-      else if (c.type === 'cyclist') drawCyclist(px, drawY, c.size, c.color, t + c.pathIdx);
-      else if (c.type === 'dogwalker') drawDogWalker(px, drawY, c.size, c.color, t + c.pathIdx);
+      // Face direction of travel
+      const angle = bezAngle(PATHS[c.pathIdx].p, c.pathT) * c.dir;
+      X.save(); X.translate(px, drawY);
+      if (c.dir < 0) X.scale(-1, 1); // flip if going backwards
+
+      if (c.type==='stroller'||c.type==='jogger') drawPerson(0, 0, c.size, c.app, t+c.pathIdx, c.type==='jogger');
+      else if (c.type === 'runner') drawPerson(0, 0, c.size, c.app, t*2+c.pathIdx, true);
+      else if (c.type === 'cyclist') drawCyclist(0, 0, c.size, c.app, t+c.pathIdx);
+      else if (c.type === 'dogwalker') drawDogWalker(0, 0, c.size, c.app, t+c.pathIdx);
+
+      X.restore();
 
     } else {
       // Grass creatures — wander
@@ -489,14 +726,38 @@ function updateAndDraw() {
       c.y += (c.homeY + Math.cos(t * c.wanderSpeed * speedMod * 0.7 + c.wanderPhase + 1) * wr * 0.5 - c.y) * 0.02;
       const drawY = c.y - c.bounce;
 
-      if (c.type === 'lounger') drawLounger(c.x, drawY, c.size, c.color);
-      else if (c.type === 'picnic') drawPicnic(c.x, drawY, c.size, c.color);
-      else if (c.type === 'frisbee') drawFrisbeePlayer(c.x, drawY, c.size, c.color, t + c.wanderPhase);
-      else if (c.type === 'child') drawChild(c.x, drawY, c.size, c.color, t * 1.5 + c.wanderPhase);
+      if (c.type === 'lounger') drawLounger(c.x, drawY, c.size, c.app);
+      else if (c.type === 'picnic') drawPicnic(c.x, drawY, c.size, c.app);
+      else if (c.type === 'frisbee') drawFrisbeePlayer(c.x, drawY, c.size, c.app, t + c.wanderPhase);
+      else if (c.type === 'child') drawChild(c.x, drawY, c.size, c.app, t * 1.5 + c.wanderPhase);
       else if (c.type === 'goose') drawGoose(c.x, drawY, c.size, t + c.wanderPhase);
       else if (c.type === 'squirrel') drawSquirrel(c.x, drawY, c.size, t * 2 + c.wanderPhase);
+      else if (c.type === 'yoga') drawYoga(c.x, drawY, c.size, c.app);
+      else if (c.type === 'reader') drawReader(c.x, drawY, c.size, c.app);
     }
   }
+}
+
+// --- GRASS TEXTURE ---
+function drawGrassDetail() {
+  const gr = R(999);
+  // Dandelions / small flowers scattered
+  X.globalAlpha=0.25;
+  for(let i=0;i<80;i++){
+    const gx=gr()*W, gy=gr()*H;
+    X.fillStyle=gr()>0.7?'#e8e060':'#e8e8e0';
+    X.beginPath();X.arc(gx,gy,1+gr()*1.5,0,Math.PI*2);X.fill();
+  }
+  // Grass blade tufts
+  X.strokeStyle='#4a8a3a';X.lineWidth=0.8;X.lineCap='round';X.globalAlpha=0.1;
+  for(let i=0;i<40;i++){
+    const gx=gr()*W, gy=gr()*H;
+    for(let j=0;j<3;j++){
+      const a=-Math.PI/2+(gr()-0.5)*0.8;
+      X.beginPath();X.moveTo(gx+j*2,gy);X.lineTo(gx+j*2+Math.cos(a)*5,gy+Math.sin(a)*5);X.stroke();
+    }
+  }
+  X.globalAlpha=1;
 }
 
 // --- STATIC PARK FURNITURE ---
@@ -509,12 +770,21 @@ for (let i = 0; i < 14; i++) {
 }
 
 const parkBenches = [
-  { x: 0.28, y: 0.47, a: 0 }, { x: 0.72, y: 0.46, a: 0.1 },
-  { x: 0.48, y: 0.28, a: 1.5 }, { x: 0.52, y: 0.68, a: 1.6 },
-  { x: 0.15, y: 0.52, a: 0 }, { x: 0.85, y: 0.5, a: 0 },
+  { x: 0.28, y: 0.47, a: 0, occ: true }, { x: 0.72, y: 0.46, a: 0.1, occ: true },
+  { x: 0.48, y: 0.28, a: 1.5, occ: false }, { x: 0.52, y: 0.68, a: 1.6, occ: true },
+  { x: 0.15, y: 0.52, a: 0, occ: false }, { x: 0.85, y: 0.5, a: 0, occ: true },
+  { x: 0.35, y: 0.62, a: 0.3, occ: false }, { x: 0.78, y: 0.32, a: -0.2, occ: true },
 ];
 
 const CART = { x: 0.38, y: 0.42 };
+const FOUNTAIN = { x: 0.5, y: 0.48 };
+
+const lampPosts = [];
+for (let i=0;i<6;i++) lampPosts.push({x:0.1+rng()*0.8, y:0.1+rng()*0.8});
+
+const trashCans = [
+  {x:0.3, y:0.46}, {x:0.7, y:0.47}, {x:0.49, y:0.3}, {x:0.51, y:0.66}
+];
 
 // --- GRID ---
 function drawGrid() {
@@ -543,26 +813,36 @@ function animate() {
   X.globalAlpha=1;
 
   drawGrid();
+  drawGrassDetail();
 
   // Paths
   for (const p of PATHS) drawParkPath(p.p);
 
-  // Pond
+  // Pond (with ducks, lily pads, reeds)
   drawPond();
 
-  // Trees (back row — top half of screen)
+  // Fountain at center
+  drawFountain(FOUNTAIN.x*W, FOUNTAIN.y*H);
+
+  // Trees (back row)
   for (const tr of parkTrees) if (tr.y < H*0.5) drawTree(tr.x, tr.y, tr.s);
 
-  // Benches
-  for (const b of parkBenches) drawBench(b.x*W, b.y*H, b.a);
+  // Lamp posts
+  for (const lp of lampPosts) drawLampPost(lp.x*W, lp.y*H);
+
+  // Trash cans
+  for (const tc of trashCans) drawTrashCan(tc.x*W, tc.y*H);
+
+  // Benches (some with people sitting)
+  for (const b of parkBenches) drawBench(b.x*W, b.y*H, b.a, b.occ);
 
   // Hotdog cart
   drawHotdogCart(CART.x*W, CART.y*H);
 
-  // Creatures
+  // All creatures
   updateAndDraw();
 
-  // Trees (front row — bottom half)
+  // Trees (front row — depth sorting)
   for (const tr of parkTrees) if (tr.y >= H*0.5) drawTree(tr.x, tr.y, tr.s);
 
   updT();
