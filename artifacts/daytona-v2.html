@@ -35,6 +35,7 @@
   #dropZone p:hover { opacity: 0.3; border-color: #3D6DF450; }
   #dropZone.dragover p { opacity: 0.4; border-color: #3D6DF4; }
   #dropZone.loaded { display: none; }
+  #demoButtons button:hover { opacity: 0.7 !important; }
 
   /* Transport bar */
   #transport {
@@ -109,6 +110,10 @@
 
 <div id="dropZone" class="active">
   <p onclick="document.getElementById('filePicker').click()">drop audio file</p>
+  <div id="demoButtons" style="display:flex;gap:10px;margin-top:12px;">
+    <button onclick="playDemo('musical')" style="font-family:'Lekton',monospace;font-size:10px;color:#3D6DF4;background:none;border:1px solid #3D6DF420;padding:6px 14px;border-radius:4px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;opacity:0.3;transition:opacity 0.2s;">Try Demo</button>
+    <button onclick="playDemo('test')" style="font-family:'Lekton',monospace;font-size:10px;color:#F46138;background:none;border:1px solid #F4613820;padding:6px 14px;border-radius:4px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;opacity:0.3;transition:opacity 0.2s;">Test Tones</button>
+  </div>
 </div>
 <input type="file" id="filePicker" accept="audio/*" style="display:none">
 
@@ -128,6 +133,11 @@
   <div class="meter-bar" style="background:#3D6DF4;"></div>
   <div class="meter-bar" style="background:#CE2867;"></div>
   <div class="meter-bar" style="background:#2C9FF4;"></div>
+</div>
+
+<div id="introOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:25;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:1;transition:opacity 1s;">
+  <p style="font-family:'Lekton',monospace;font-size:11px;color:#ffffff;letter-spacing:0.1em;text-transform:uppercase;opacity:0.15;">drop an audio file or click try demo</p>
+  <p style="font-family:'Lekton',monospace;font-size:9px;color:#ffffff;letter-spacing:0.06em;opacity:0.08;margin-top:8px;">mouse controls influence · transport appears on load</p>
 </div>
 
 <script>
@@ -160,6 +170,9 @@ const audio = {
   prev: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
   // Transients: fast-attack, slow-decay values that spike on hits
   hit: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
+  prevSpectrum: null,
+  flux: 0,
+  kickDetector: { energy: 0, prevEnergy: 0, rising: 0 },
   isLoaded: false,
   fileName: '',
 
@@ -208,29 +221,39 @@ const audio = {
 
     this.analyser.getByteFrequencyData(this.freqData);
     const binHz = this.ctx.sampleRate / this.analyser.fftSize;
+    const numBins = this.freqData.length;
 
-    // Bin ranges
-    const bassEnd = Math.round(250 / binHz);
-    const lowMidEnd = Math.round(1000 / binHz);
-    const midEnd = Math.round(4000 / binHz);
-    const highEnd = Math.min(Math.round(20000 / binHz), this.freqData.length);
+    // Mel-scale frequency mapping
+    function hzToMel(hz) { return 2595 * Math.log10(1 + hz / 700); }
+    function melToHz(mel) { return 700 * (Math.pow(10, mel / 2595) - 1); }
 
-    function avgRange(data, from, to) {
-      let sum = 0;
-      const count = Math.max(1, to - from);
-      for (let i = from; i < to; i++) sum += data[i];
-      return (sum / count) / 255;
+    const bandEdges = [20, 250, 1000, 4000, 20000]; // Hz boundaries
+    const melEdges = bandEdges.map(hzToMel);
+
+    function melAvgRange(data, hzFrom, hzTo) {
+      const melFrom = hzToMel(hzFrom);
+      const melTo = hzToMel(hzTo);
+      const numSubBands = 16;
+      let sum = 0, count = 0;
+      for (let i = 0; i < numSubBands; i++) {
+        const mel = melFrom + (melTo - melFrom) * (i + 0.5) / numSubBands;
+        const hz = melToHz(mel);
+        const bin = Math.min(numBins - 1, Math.max(0, Math.round(hz / binHz)));
+        sum += data[bin];
+        count++;
+      }
+      return count > 0 ? (sum / count) / 255 : 0;
     }
 
     const raw = {
-      bass: avgRange(this.freqData, 1, bassEnd),
-      lowMid: avgRange(this.freqData, bassEnd, lowMidEnd),
-      mid: avgRange(this.freqData, lowMidEnd, midEnd),
-      high: avgRange(this.freqData, midEnd, highEnd),
-      energy: avgRange(this.freqData, 0, this.freqData.length),
+      bass: melAvgRange(this.freqData, 20, 250),
+      lowMid: melAvgRange(this.freqData, 250, 1000),
+      mid: melAvgRange(this.freqData, 1000, 4000),
+      high: melAvgRange(this.freqData, 4000, 20000),
+      energy: melAvgRange(this.freqData, 20, 20000),
     };
 
-    // Exponential smoothing — bass gets heavier smoothing to avoid pump
+    // Exponential smoothing
     const s = this.smoothed;
     s.bass = s.bass * 0.88 + raw.bass * 0.12;
     s.lowMid = s.lowMid * 0.85 + raw.lowMid * 0.15;
@@ -238,24 +261,51 @@ const audio = {
     s.high = s.high * 0.82 + raw.high * 0.18;
     s.energy = s.energy * 0.85 + raw.energy * 0.15;
 
-    // Amplify and clamp — raw FFT averages are often 0.1-0.3, need to push to 0-1 range
+    // Amplify and clamp
     this.bands.bass = Math.min(1, s.bass * 3.0);
     this.bands.lowMid = Math.min(1, s.lowMid * 2.8);
     this.bands.mid = Math.min(1, s.mid * 2.5);
     this.bands.high = Math.min(1, s.high * 3.5);
     this.bands.energy = Math.min(1, s.energy * 2.5);
 
-    // Transient detection — spike on sudden increases, fast decay
+    // Spectral flux onset detection
+    if (!this.prevSpectrum) {
+      this.prevSpectrum = new Float32Array(numBins);
+    }
+    let fluxSum = 0;
+    for (let i = 0; i < numBins; i++) {
+      const diff = this.freqData[i] - this.prevSpectrum[i];
+      if (diff > 0) fluxSum += diff;
+      this.prevSpectrum[i] = this.freqData[i];
+    }
+    this.flux = fluxSum / (numBins * 255); // Normalized 0-1ish
+
+    // Sub-bass kick detector (30-80Hz)
+    const kickBinFrom = Math.max(1, Math.round(30 / binHz));
+    const kickBinTo = Math.round(80 / binHz);
+    let kickEnergy = 0;
+    for (let i = kickBinFrom; i < kickBinTo; i++) kickEnergy += this.freqData[i];
+    kickEnergy /= (kickBinTo - kickBinFrom) * 255;
+    const kd = this.kickDetector;
+    const kickRise = kickEnergy - kd.prevEnergy;
+    if (kickRise > 0) kd.rising = Math.min(1, kd.rising + kickRise * 5);
+    else kd.rising *= 0.7;
+    kd.prevEnergy = kickEnergy;
+
+    // Transient detection — use spectral flux for sharper response
     for (const k of ['bass', 'lowMid', 'mid', 'high', 'energy']) {
       const delta = this.bands[k] - this.prev[k];
-      if (delta > 0.05) {
-        // Hit! Jump up proportional to the spike
-        this.hit[k] = Math.min(1, this.hit[k] + delta * 3);
+      const fluxBoost = this.flux * 2; // Spectral flux adds sensitivity
+      if (delta > 0.03 || (delta > 0.01 && fluxBoost > 0.15)) {
+        this.hit[k] = Math.min(1, this.hit[k] + (delta + fluxBoost) * 2.5);
       }
-      // Fast decay
       this.hit[k] *= 0.88;
       if (this.hit[k] < 0.01) this.hit[k] = 0;
       this.prev[k] = this.bands[k];
+    }
+    // Kick hit from sub-bass detector
+    if (kd.rising > 0.3) {
+      this.hit.bass = Math.min(1, this.hit.bass + kd.rising * 0.8);
     }
   }
 };
@@ -277,6 +327,152 @@ document.addEventListener('drop', e => {
 filePicker.addEventListener('change', e => {
   if (e.target.files[0]) audio.init(e.target.files[0]);
 });
+
+// --- DEMO AUDIO GENERATOR ---
+function generateDemoBuffer(type) {
+  const actx = audio.ctx || new (window.AudioContext || window.webkitAudioContext)();
+  if (!audio.ctx) audio.ctx = actx;
+  actx.resume();
+
+  const sr = actx.sampleRate;
+  const duration = type === 'musical' ? 12 : 8;
+  const frames = sr * duration;
+  const buffer = actx.createBuffer(2, frames, sr);
+  const L = buffer.getChannelData(0);
+  const R = buffer.getChannelData(1);
+
+  if (type === 'musical') {
+    // Musical demo: kick + hihat + melodic sweep
+    const bpm = 120;
+    const beatFrames = Math.floor(sr * 60 / bpm);
+    for (let i = 0; i < frames; i++) {
+      const time = i / sr;
+      const beat = Math.floor(i / beatFrames);
+      const beatPos = (i % beatFrames) / beatFrames;
+      let sample = 0;
+
+      // Kick on beats 0,2 (every half note)
+      if (beat % 2 === 0 && beatPos < 0.15) {
+        const kickEnv = Math.exp(-beatPos * 30);
+        const kickFreq = 60 + 80 * Math.exp(-beatPos * 20);
+        sample += Math.sin(2 * Math.PI * kickFreq * beatPos) * kickEnv * 0.6;
+      }
+
+      // Hi-hat on every beat
+      if (beatPos < 0.05) {
+        const hatEnv = Math.exp(-beatPos * 80);
+        sample += (Math.random() * 2 - 1) * hatEnv * 0.15;
+      }
+
+      // Snare on beats 1,3
+      if (beat % 2 === 1 && beatPos < 0.1) {
+        const snareEnv = Math.exp(-beatPos * 25);
+        sample += (Math.random() * 2 - 1) * snareEnv * 0.3;
+        sample += Math.sin(2 * Math.PI * 180 * beatPos) * snareEnv * 0.2;
+      }
+
+      // Melodic sweep: saw wave sweeping 220-880Hz over duration
+      const sweepFreq = 220 + 660 * (time / duration);
+      const sawPhase = (sweepFreq * time) % 1;
+      const saw = (sawPhase * 2 - 1) * 0.08;
+      // Simple low-pass by averaging
+      sample += saw * (0.3 + 0.7 * Math.sin(time * 0.5));
+
+      // Bass line: simple pattern
+      const bassNote = [55, 55, 73.4, 65.4][beat % 4];
+      const bassEnv = Math.exp(-beatPos * 3) * 0.25;
+      sample += Math.sin(2 * Math.PI * bassNote * time) * bassEnv;
+
+      L[i] = sample;
+      R[i] = sample;
+    }
+  } else {
+    // Test tones: sweep through bands
+    const bands = [
+      { start: 0, end: 2, freqFrom: 40, freqTo: 250, label: 'bass' },
+      { start: 2, end: 4, freqFrom: 250, freqTo: 1000, label: 'low-mid' },
+      { start: 4, end: 6, freqFrom: 1000, freqTo: 4000, label: 'mid' },
+      { start: 6, end: 8, freqFrom: 4000, freqTo: 16000, label: 'high' },
+    ];
+    for (let i = 0; i < frames; i++) {
+      const time = i / sr;
+      let sample = 0;
+      for (const band of bands) {
+        if (time >= band.start && time < band.end) {
+          const t01 = (time - band.start) / (band.end - band.start);
+          const freq = band.freqFrom * Math.pow(band.freqTo / band.freqFrom, t01);
+          const env = Math.sin(t01 * Math.PI); // fade in/out
+          sample += Math.sin(2 * Math.PI * freq * time) * env * 0.3;
+        }
+      }
+      L[i] = sample;
+      R[i] = sample;
+    }
+  }
+  return buffer;
+}
+
+function playDemo(type) {
+  if (!audio.ctx) {
+    audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  audio.ctx.resume();
+
+  const buffer = generateDemoBuffer(type);
+
+  // Create a blob from the buffer to feed through existing init path
+  const wavBlob = bufferToWav(buffer);
+  const file = new File([wavBlob], type === 'musical' ? 'Demo Track.wav' : 'Test Tones.wav', { type: 'audio/wav' });
+  audio.init(file);
+}
+
+function bufferToWav(buffer) {
+  const numChannels = buffer.numberOfChannels;
+  const sr = buffer.sampleRate;
+  const frames = buffer.length;
+  const bytesPerSample = 2;
+  const blockAlign = numChannels * bytesPerSample;
+  const dataSize = frames * blockAlign;
+  const buf = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buf);
+
+  function writeStr(offset, str) { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); }
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sr, true);
+  view.setUint32(28, sr * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let i = 0; i < frames; i++) {
+    for (let ch = 0; ch < numChannels; ch++) {
+      const s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+// --- INTRO OVERLAY ---
+let introShown = true;
+function hideIntro() {
+  if (!introShown) return;
+  introShown = false;
+  const el = document.getElementById('introOverlay');
+  if (el) { el.style.opacity = '0'; setTimeout(() => el.style.display = 'none', 1000); }
+}
+setTimeout(hideIntro, 4000);
+document.addEventListener('click', hideIntro);
+document.addEventListener('dragover', hideIntro);
 
 // --- TRANSPORT ---
 document.getElementById('playBtn').addEventListener('click', () => {
@@ -328,12 +524,12 @@ class Body {
     this.i = i;
     this.total = total;
     this.orbitR = 80 + i * 28;
-    this.speed = 0.3 + (total - i) * 0.06;
+    this.speed = 0.4 + (total - i) * 0.08;
     this.phase = (i / total) * Math.PI * 2;
     this.size = 2 + Math.random() * 3;
     this.color = i % 3 === 0 ? SE : i % 3 === 1 ? EH : SP;
     this.trail = [];
-    this.trailMax = 120 + i * 8;
+    this.trailMax = 80 + i * 5;
     this.tilt = 0.3 + i * 0.08;
     this.wobble = 0.5 + Math.random() * 0.5;
   }
@@ -387,7 +583,7 @@ class Body {
       ctx.arc(this.x, this.y, flashR, 0, Math.PI * 2);
       ctx.strokeStyle = '#ffffff';
       ctx.globalAlpha = eHit * 0.6;
-      ctx.lineWidth = 1 + eHit * 2;
+      ctx.lineWidth = Math.min(2, 1 + eHit);
       ctx.stroke();
       // Inner bright flash
       ctx.beginPath();
@@ -435,7 +631,7 @@ class Wave {
     // Brief glow flash ONLY on sharp drum hits — still thin, just brighter
     if (hitVal > 0.3) {
       ctx.globalAlpha = (hitVal - 0.3) * 0.25;
-      ctx.lineWidth = Math.min(3, this.lw + 1);
+      ctx.lineWidth = Math.min(2, this.lw + 1);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -513,7 +709,7 @@ const waves = [new Wave(0), new Wave(1), new Wave(2)];
 
 // --- SUN ---
 function drawSun(x, y, influence) {
-  const glowR = 40 + influence * 60;
+  const glowR = 40 + influence * 20;
   const grad = ctx.createRadialGradient(x, y, 0, x, y, glowR);
   grad.addColorStop(0, `rgba(244,97,56,${0.4 + influence * 0.3})`);
   grad.addColorStop(0.5, `rgba(244,97,56,${0.08 + influence * 0.1})`);
@@ -522,27 +718,27 @@ function drawSun(x, y, influence) {
   const sz = glowR * 2;
   ctx.fillRect(x - sz/2, y - sz/2, sz, sz);
   ctx.beginPath();
-  ctx.arc(x, y, 8 + influence * 10, 0, Math.PI * 2);
+  ctx.arc(x, y, 6 + influence * 4, 0, Math.PI * 2);
   ctx.fillStyle = SE;
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(x, y, 14 + Math.sin(t) * 2 + influence * 12, 0, Math.PI * 2);
+  ctx.arc(x, y, 10 + Math.sin(t) * 2 + influence * 4, 0, Math.PI * 2);
   ctx.strokeStyle = SE;
-  ctx.globalAlpha = 0.2 + influence * 0.3;
-  ctx.lineWidth = 0.8 + influence * 1;
+  ctx.globalAlpha = 0.15 + influence * 0.15;
+  ctx.lineWidth = Math.min(1, 0.6 + influence * 0.3);
   ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
 // --- FORWARD BEAM ---
 function drawBeam(sx, sy, influence) {
-  const beamH = 1 + influence * 4;
+  const beamH = 1 + influence * 1;
   const grad = ctx.createLinearGradient(sx, sy, W, sy);
   grad.addColorStop(0, `rgba(244,161,56,${0.25 + influence * 0.3})`);
   grad.addColorStop(0.4, `rgba(244,161,56,${0.06 + influence * 0.1})`);
   grad.addColorStop(1, 'rgba(244,161,56,0)');
   ctx.fillStyle = grad;
-  ctx.globalAlpha = 0.3 + influence * 0.5;
+  ctx.globalAlpha = 0.2 + influence * 0.2;
   ctx.fillRect(sx, sy - beamH/2, W - sx, beamH);
   ctx.globalAlpha = 1;
 }
@@ -552,7 +748,7 @@ function getInf(cx, cy, band) {
   const d = Math.sqrt((smx - cx) ** 2 + (smy - cy) ** 2);
   const mouseInf = Math.max(0, 1 - d / 500);
   const audioInf = band ? (audio.bands[band] || 0) : audio.bands.energy;
-  return Math.min(2, mouseInf + audioInf * 1.5);
+  return Math.min(2, mouseInf + audioInf * 0.8);
 }
 
 // --- MAIN LOOP ---

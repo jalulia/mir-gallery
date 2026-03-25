@@ -207,6 +207,7 @@ body {
 
 /* ─── Reference Card ─── */
 .ref-card {
+  position: relative;
   background: var(--charcoal);
   border-radius: var(--card-radius);
   overflow: hidden;
@@ -262,6 +263,7 @@ body {
 
 /* ─── Artifact Card ─── */
 .artifact-card {
+  position: relative;
   background: var(--charcoal);
   border-radius: var(--card-radius);
   overflow: hidden;
@@ -283,11 +285,20 @@ body {
   align-items: center;
   justify-content: center;
 }
-.artifact-preview iframe {
-  width: 100%;
-  height: 100%;
+.artifact-thumb-frame {
+  width: 1280px;
+  height: 800px;
   border: none;
   pointer-events: none;
+  transform-origin: top left;
+  transform: scale(0.25);
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.artifact-preview-overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 2; cursor: pointer;
 }
 .artifact-preview .placeholder {
   font-family: var(--font-mono);
@@ -575,9 +586,17 @@ body.light .theme-toggle:hover { border-color: var(--eh); color: var(--eh); }
   width: 18px; height: 18px; border-radius: 50%;
   background: rgba(0,0,0,0.6); color: #fff;
   border: none; font-size: 11px; cursor: pointer;
-  display: none; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center; opacity: 0.3;
 }
-.filmstrip-item:hover .filmstrip-remove { display: flex; }
+.filmstrip-item:hover .filmstrip-remove { opacity: 1; }
+.filmstrip-priority {
+  position: absolute; top: 4px; left: 4px; z-index: 2;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--eh); color: #fff;
+  font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
 
 .workspace-body {
   display: grid; grid-template-columns: 1fr 360px; gap: 32px;
@@ -647,6 +666,21 @@ select.workspace-input { font-family: var(--font-mono); font-size: 12px; }
   font-size: 11px; color: var(--off-white);
   overflow-x: auto; white-space: pre-wrap; line-height: 1.6;
 }
+
+.breadcrumb { position: fixed; top: 5px; left: 40px; z-index: 90; font-family: var(--font-mono); font-size: 9px; color: var(--light-gray); letter-spacing: 0.06em; opacity: 0.25; }
+.breadcrumb span { cursor: default; }
+.breadcrumb .bc-sep { margin: 0 6px; opacity: 0.4; }
+.breadcrumb .bc-workspace { position: relative; }
+.breadcrumb .bc-workspace:hover::after { content: 'Multiple workspaces coming soon'; position: absolute; top: 16px; left: 0; background: #1A1A1A; border: 1px solid #ffffff12; padding: 4px 8px; border-radius: 3px; white-space: nowrap; font-size: 8px; color: #ffffff40; z-index: 100; }
+body.light .breadcrumb { color: var(--mid-gray); }
+
+.card.archived { opacity: 0.35; filter: grayscale(0.5); }
+.archive-btn { position: absolute; top: 6px; right: 6px; z-index: 5; background: none; border: 1px solid #ffffff12; border-radius: 3px; color: #ffffff30; font-size: 8px; padding: 2px 6px; cursor: pointer; font-family: var(--font-mono); display: none; }
+.ref-card:hover .archive-btn, .artifact-card:hover .archive-btn { display: block; }
+.archive-btn:hover { border-color: var(--se); color: var(--se); }
+.undo-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 100; background: #1A1A1A; border: 1px solid var(--eh); color: var(--off-white); padding: 8px 16px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; display: none; align-items: center; gap: 12px; }
+.undo-toast.visible { display: flex; }
+.undo-toast button { background: none; border: 1px solid var(--eh); color: var(--eh); padding: 3px 10px; border-radius: 3px; cursor: pointer; font-family: var(--font-mono); font-size: 10px; }
 
 /* light mode additions */
 body.light .selection-bar { background: #fff; border-color: var(--eh); }
@@ -759,6 +793,12 @@ body.light .docs-close:hover { color: #000; }
 </head>
 <body>
 
+<div class="breadcrumb">
+  <span class="bc-workspace">Ø Workbench</span>
+  <span class="bc-sep">›</span>
+  <span>Mir Gallery</span>
+</div>
+
 <div class="accent-bar"></div>
 
 <header class="header">
@@ -788,6 +828,7 @@ body.light .docs-close:hover { color: #000; }
   <input class="search-input" type="text" placeholder="search…" oninput="filterCards(this.value)">
   <div id="tag-filters"></div>
   <button class="filter-btn select-toggle" id="select-toggle" onclick="toggleSelectionMode()">☐ select</button>
+  <button class="filter-btn" id="archive-toggle" onclick="toggleShowArchived()" style="font-size:10px;opacity:0.4;">archived</button>
   <div class="toolbar-spacer"></div>
   <div class="view-mode">
     <button class="view-btn active" onclick="setView('grid')" title="Grid">
@@ -899,6 +940,10 @@ body.light .docs-close:hover { color: #000; }
     <button class="workspace-back" onclick="closeWorkspace()">← gallery</button>
     <h2 class="workspace-title">Workspace</h2>
     <span class="workspace-ref-count" id="workspace-ref-count"></span>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <span id="session-selector"></span>
+      <button class="ws-btn-secondary" onclick="saveWorkspaceSession()" style="font-size:9px;padding:4px 10px;">Save Session</button>
+    </div>
   </div>
   <div class="workspace-filmstrip" id="workspace-filmstrip"></div>
   <div class="workspace-body">
@@ -908,7 +953,8 @@ body.light .docs-close:hover { color: #000; }
         <div class="workspace-panel-title">Export</div>
         <div class="workspace-actions">
           <button class="ws-btn-secondary" onclick="exportBrief()">↓ Download brief (.md)</button>
-          <button class="ws-btn-secondary" onclick="copyBrief()">⎘ Copy brief to clipboard</button>
+          <button class="ws-btn-secondary" onclick="copyBrief()">⎘ Copy brief</button>
+          <button class="ws-btn-primary" onclick="copyClaudeBrief()">⎘ Copy for Claude</button>
         </div>
       </div>
       <div>
@@ -920,6 +966,7 @@ body.light .docs-close:hover { color: #000; }
           <option value="draft">draft</option>
           <option value="wip">wip</option>
           <option value="stable">stable</option>
+          <option value="archived">archived</option>
         </select>
         <input class="workspace-input" id="artifact-file" type="text" placeholder="File path (e.g. artifacts/my-viz.html)">
         <div class="workspace-actions">
@@ -939,6 +986,21 @@ body.light .docs-close:hover { color: #000; }
   <div class="footer-left">mir gallery · v0.1</div>
   <div class="footer-right"><span>ø</span></div>
 </footer>
+
+<div class="undo-toast" id="undo-toast">
+  <span id="undo-toast-text">Archived</span>
+  <button onclick="undoArchive()">Undo</button>
+</div>
+
+<!-- Artifact Viewer Overlay -->
+<div id="artifact-viewer" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:#0A0A0A;">
+  <div id="artifact-viewer-bar" style="position:absolute;top:0;left:0;right:0;z-index:510;display:flex;align-items:center;gap:12px;padding:8px 16px;background:rgba(10,10,10,0.85);backdrop-filter:blur(8px);border-bottom:1px solid #ffffff08;">
+    <button onclick="closeArtifactViewer()" style="font-family:'Lekton',monospace;font-size:10px;color:#3D6DF4;background:none;border:1px solid #3D6DF430;padding:4px 12px;border-radius:3px;cursor:pointer;letter-spacing:0.06em;">← Gallery</button>
+    <span id="artifact-viewer-title" style="font-family:'Lekton',monospace;font-size:10px;color:#ffffff30;letter-spacing:0.08em;text-transform:uppercase;"></span>
+    <button onclick="openArtifactNewTab()" style="margin-left:auto;font-family:'Lekton',monospace;font-size:9px;color:#ffffff20;background:none;border:1px solid #ffffff10;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:0.06em;">Open in new tab ↗</button>
+  </div>
+  <iframe id="artifact-viewer-frame" style="width:100%;height:100%;border:none;padding-top:40px;" sandbox="allow-scripts allow-same-origin"></iframe>
+</div>
 
 <script>
 // ─── DATA ───
@@ -1067,8 +1129,8 @@ const REFERENCES = [
 
 // Artifacts: add entries here or load from artifacts.json
 const ARTIFACTS = [
-  { file: "artifacts/sound-n-art-v1.html", title: "Sound N Art v1", desc: "Interactive geometric sound poster — 6 modules (orbital, wire sphere, nested rects, distorted grid, spirograph, lissajous) with cursor-driven influence fields.", tags: ["generative", "grid", "orbital", "topology"], status: "draft", date: "2026-03-25", refs: ["references/a5c56d8827285de18f79389cc5f0d121.jpg"] },
-  { file: "artifacts/scinote.html", title: "Synthentific", desc: "A test", tags: ["notation", "schematic", "grid"], status: "draft", date: "2026-03-25", refs: ["references/010174be7b366ba8caafae676b0c12f5.jpg"] },
+  { file: "artifacts/sound-n-art-v1.html", title: "Geometric Sounds", desc: "Interactive geometric sound poster — 6 modules (orbital, wire sphere, nested rects, distorted grid, spirograph, lissajous) with cursor-driven influence fields.", tags: ["generative", "grid", "orbital", "topology"], status: "draft", date: "2026-03-25", refs: ["references/a5c56d8827285de18f79389cc5f0d121.jpg"] },
+  { file: "artifacts/scinote.html", title: "Synthentific Sampler", desc: "48-pad audio sample machine — upload, record, trim, and trigger samples from an 8×6 grid. Drag from library, right-click to inspect waveforms, keyboard shortcuts for live play.", tags: ["terminal", "waveform", "schematic", "generative"], status: "wip", date: "2026-03-25", refs: ["references/010174be7b366ba8caafae676b0c12f5.jpg"] },
   { file: "artifacts/daytona.html", title: "Daytona", desc: "Orbital wave trajectories — 9 bodies tracing helical paths around a sun with 3-wave interference, convergence burst, and forward beam.", tags: ["dataviz", "orbital", "particles", "waveform"], status: "draft", date: "2026-03-25", refs: ["references/e6223ab875b7cb0588df8492d6d44d16.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
   { file: "artifacts/daytona-v2.html", title: "Daytona v2", desc: "Audio-reactive orbital trajectories — drop an audio file to drive the visualization. Bass pumps the sun, mids fill interference, highs light up the stars.", tags: ["dataviz", "orbital", "particles", "waveform"], status: "wip", date: "2026-03-25", refs: ["references/e6223ab875b7cb0588df8492d6d44d16.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
   { file: "artifacts/idk-man.html", title: "idk man", desc: "Modular isometric park goers — 24 wandering figures with social connection graphs, gentle mouse attraction, on a warm cream grid.", tags: ["network", "dataviz", "particles", "whimsy"], status: "draft", date: "2026-03-25", refs: ["references/2448c9e0d6e740cc84272718ad4f9616.jpg", "references/lil-mirs-yous.jpg"] },
@@ -1076,6 +1138,8 @@ const ARTIFACTS = [
   { file: "artifacts/harmoniac-rack.html", title: "harmoniac-rack", desc: "Modular patch synth — click nodes to activate, drag between them to connect. Oscillators, filters, delay, LFO, noise. Scroll wheel adjusts parameters. Right-click to remove patches.", tags: ["notation", "schematic", "grid", "particles"], status: "draft", date: "2026-03-25", refs: ["references/010174be7b366ba8caafae676b0c12f5.jpg", "references/a4a840782cd536a33c59a6dabe5de4f3.jpg"] },
   { file: "artifacts/beats.html", title: "Beats", desc: "12×8 step sequencer grid with patterned cells, sweeping 90 BPM playhead, curved signal-flow lines with traveling dots, and schematic annotations. Click to toggle cells.", tags: ["generative", "grid", "notation", "schematic"], status: "draft", date: "2026-03-25", refs: [] },
   { file: "artifacts/game-test.html", title: "Game test", desc: "Generative topology — orbital trajectory arcs, gradient spheres, central starburst, schematic annotations, traveling particles on dark field.", tags: ["color", "waveform", "generative", "topology"], status: "draft", date: "2026-03-25", refs: ["references/3782e13cadab7d9d8af897d543e7ff8c.jpg", "references/2e0e8ce22b51ab797100e58d6ae0da6c.jpg"] },
+  { file: "artifacts/helix-strands.html", title: "HELIX Strands", desc: "Three-view HELIX strand visualization — Strand Garden (particle physics), Triple Helix Tower (scrollable ribbons), Breathing Ring (concentric noise-deformed rings). Two datasets: Exosomatic Cortex (410 strands) and Triadic Septadic (64 strands). Terminal HUD with coset frequency readouts.", tags: ["terminal", "waveform", "dataviz", "color"], status: "draft", date: "2026-03-25", refs: ["references/099dfa3bdd4c86f62dab8750f2f761b8.jpg", "references/4f64d2cab4066b0632692e16619bc980.jpg", "references/59750d64764c687898babf6ab6185048.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
+  { file: "artifacts/helix-strands-v2.html", title: "HELIX Strands v2", desc: "Unified spiral HELIX visualization — interactive Archimedean spiral with coset coloring, brightness by local balance deviation, chapter boundaries, hover/click strand inspection, scrubber timeline, network overlay (Z₃ adjacency), drift overlay (σ_B particles). Two datasets.", tags: ["terminal", "waveform", "dataviz", "color"], status: "wip", date: "2026-03-25", refs: ["references/099dfa3bdd4c86f62dab8750f2f761b8.jpg", "references/4f64d2cab4066b0632692e16619bc980.jpg", "references/59750d64764c687898babf6ab6185048.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
 ];
 
 // ─── STATE ───
@@ -1084,7 +1148,8 @@ let currentView = 'grid';
 let searchQuery = '';
 let activeTagFilter = null;
 let selectionMode = false;
-let selectedRefs = new Set(JSON.parse(localStorage.getItem('mir-selected-refs') || '[]'));
+// Start fresh — don't restore previous selections on load
+let selectedRefs = new Set();
 let localArtifacts = JSON.parse(localStorage.getItem('mir-local-artifacts') || '[]');
 
 function getAllArtifacts() { return [...ARTIFACTS, ...localArtifacts]; }
@@ -1107,7 +1172,8 @@ function render() {
 
 function renderReferences() {
   const grid = document.getElementById('references-grid');
-  const filtered = filterData(REFERENCES, 'name');
+  const preFiltered = REFERENCES.filter(r => showArchived || !archivedItems.includes(r.file));
+  const filtered = filterData(preFiltered, 'name');
 
   if (filtered.length === 0 && REFERENCES.length === 0) {
     grid.innerHTML = `
@@ -1135,6 +1201,7 @@ function renderReferences() {
       : `openLightbox('${ref.file}')`;
     return `
     <div class="${classes}" onclick="${action}">
+      <button class="archive-btn" onclick="event.stopPropagation(); archiveRef('${ref.file}')" title="Archive">✕</button>
       <div class="select-check">✓</div>
       <div class="artifact-badge">linked</div>
       <img class="ref-card-img" src="${ref.file}" alt="${ref.name || ''}">
@@ -1150,7 +1217,7 @@ function renderReferences() {
 
 function renderArtifacts() {
   const grid = document.getElementById('artifacts-grid');
-  const all = getAllArtifacts();
+  const all = getAllArtifacts().filter(a => showArchived || !archivedItems.includes(a.file));
   const filtered = filterData(all, 'title');
 
   if (filtered.length === 0 && all.length === 0) {
@@ -1174,11 +1241,11 @@ function renderArtifacts() {
     const refs = (a.refs || []).slice(0, 4);
     const overflow = (a.refs || []).length - 4;
     return `
-    <div class="artifact-card" onclick="window.open('${a.file}', '_blank')">
+    <div class="artifact-card" onclick="openArtifact('${a.file}', '${a.title.replace(/'/g, "\\'")}')">
+      <button class="archive-btn" onclick="event.stopPropagation(); archiveArtifact('${a.file}')" title="Archive">✕</button>
       <div class="artifact-preview">
-        ${a.thumb
-          ? `<img src="${a.thumb}" style="width:100%;height:100%;object-fit:cover;">`
-          : `<span class="placeholder">⟨ preview ⟩</span>`}
+        <iframe src="${a.file}" class="artifact-thumb-frame" loading="lazy" sandbox="allow-scripts" tabindex="-1"></iframe>
+        <div class="artifact-preview-overlay"></div>
         <span class="artifact-status ${a.status}">${a.status}</span>
       </div>
       <div class="artifact-info">
@@ -1323,19 +1390,48 @@ function showWorkspace() {
   const refs = [...selectedRefs].map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
   document.getElementById('workspace-ref-count').textContent = `${refs.length} references`;
 
-  strip.innerHTML = refs.map(ref => `
-    <div class="filmstrip-item" title="${ref.name || ''}">
+  strip.innerHTML = refs.map((ref, idx) => `
+    <div class="filmstrip-item" draggable="true" data-file="${ref.file}" data-idx="${idx}" title="${ref.name || ''}">
+      <span class="filmstrip-priority">${idx + 1}</span>
       <img src="${ref.file}" alt="${ref.name || ''}">
       <div class="filmstrip-name">${ref.name || ref.file.split('/').pop()}</div>
       <button class="filmstrip-remove" onclick="event.stopPropagation(); removeFromWorkspace('${ref.file}')">×</button>
     </div>
   `).join('');
 
+  // Drag-to-reorder
+  let dragIdx = null;
+  strip.querySelectorAll('.filmstrip-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragIdx = parseInt(item.dataset.idx);
+      item.style.opacity = '0.4';
+    });
+    item.addEventListener('dragend', () => { item.style.opacity = '1'; });
+    item.addEventListener('dragover', e => { e.preventDefault(); item.style.borderColor = 'var(--eh)'; });
+    item.addEventListener('dragleave', () => { item.style.borderColor = ''; });
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.style.borderColor = '';
+      const dropIdx = parseInt(item.dataset.idx);
+      if (dragIdx !== null && dragIdx !== dropIdx) {
+        const arr = [...selectedRefs];
+        const [moved] = arr.splice(dragIdx, 1);
+        arr.splice(dropIdx, 0, moved);
+        selectedRefs = new Set(arr);
+        saveSelection();
+        showWorkspace();
+      }
+    });
+  });
+
   // Restore notes
   document.getElementById('workspace-notes').value = localStorage.getItem('mir-workspace-notes') || '';
 
   // Suggested tags
   renderSuggestedTags();
+
+  // Session selector
+  renderSessionSelector();
 
   // Clear any previous output
   document.getElementById('workspace-output').style.display = 'none';
@@ -1383,7 +1479,8 @@ document.addEventListener('input', e => {
 
 // ─── EXPORT BRIEF ───
 function buildBrief() {
-  const refs = [...selectedRefs].map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
+  const refsArr = [...selectedRefs];
+  const refs = refsArr.map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
   const notes = document.getElementById('workspace-notes').value || '';
   const tagCounts = {};
   refs.forEach(r => (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
@@ -1392,12 +1489,39 @@ function buildBrief() {
 
   let md = `# Artifact Brief — ${date}\n\n`;
   md += `## Selected References (${refs.length})\n\n`;
-  refs.forEach(r => {
-    md += `- **${r.name}** (${(r.tags || []).join(', ')}) → \`${r.file}\`\n`;
+  refs.forEach((r, i) => {
+    md += `${i + 1}. **${r.name}** (${(r.tags || []).join(', ')}) → \`${r.file}\`\n`;
   });
   md += `\n## Notes\n\n${notes || '_No notes yet._'}\n`;
+  md += `\n## Tag Analysis\n\n`;
+  sorted.forEach(([t, c]) => {
+    const bar = '█'.repeat(c) + '░'.repeat(Math.max(0, refs.length - c));
+    md += `${t.padEnd(14)} ${bar} ${c}/${refs.length}\n`;
+  });
   md += `\n## Suggested Tags\n\n`;
-  md += sorted.map(([t, c]) => `${t} (${c})`).join(', ') + '\n';
+  md += sorted.slice(0, 4).map(([t]) => t).join(', ') + '\n';
+  return md;
+}
+
+function buildClaudeBrief() {
+  const refsArr = [...selectedRefs];
+  const refs = refsArr.map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
+  const notes = document.getElementById('workspace-notes').value || '';
+  const tagCounts = {};
+  refs.forEach(r => (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  const date = new Date().toISOString().split('T')[0];
+
+  let md = `## Artifact Brief — ${date}\n\n`;
+  md += `### References (${refs.length}, priority ordered)\n`;
+  refs.forEach((r, i) => {
+    md += `${i + 1}. \`${r.file}\` — ${r.name} [${(r.tags || []).join(', ')}]\n`;
+  });
+  md += `\n### Direction\n${notes || 'No notes provided.'}\n`;
+  md += `\n### Tag Frequency\n`;
+  sorted.forEach(([t, c]) => md += `- ${t}: ${c}\n`);
+  md += `\n### Suggested Palette\nIO Brand Kit: EH #3D6DF4, SE #F46138, PW #CE2867, SP #2C9FF4\n`;
+  md += `\n### Output\nCreate a self-contained HTML artifact in \`artifacts/\` using Canvas 2D. Register in index.html ARTIFACTS array.\n`;
   return md;
 }
 
@@ -1421,10 +1545,30 @@ function copyBrief() {
   });
 }
 
+function copyClaudeBrief() {
+  navigator.clipboard.writeText(buildClaudeBrief()).then(() => {
+    const btn = document.querySelector('[onclick="copyClaudeBrief()"]');
+    const orig = btn.textContent;
+    btn.textContent = '✓ copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
 // ─── REGISTER ARTIFACT ───
 function registerArtifact() {
   const title = document.getElementById('artifact-title').value.trim();
   if (!title) { alert('Title is required.'); return; }
+
+  // Auto-populate description from notes if empty
+  let descEl = document.getElementById('artifact-desc');
+  if (!descEl.value.trim()) {
+    const notes = document.getElementById('workspace-notes').value || '';
+    if (notes) {
+      const trimmed = notes.substring(0, 200);
+      const lastPeriod = trimmed.lastIndexOf('.');
+      descEl.value = lastPeriod > 50 ? trimmed.substring(0, lastPeriod + 1) : trimmed;
+    }
+  }
 
   const refs = [...selectedRefs].map(file => REFERENCES.find(r => r.file === file)).filter(Boolean);
   const tagCounts = {};
@@ -1464,7 +1608,116 @@ function copyArtifactCode() {
   });
 }
 
+// ─── WORKSPACE SESSIONS ───
+function saveWorkspaceSession() {
+  const name = prompt('Session name:');
+  if (!name) return;
+  const sessions = JSON.parse(localStorage.getItem('mir-sessions') || '[]');
+  sessions.push({
+    name,
+    refs: [...selectedRefs],
+    notes: document.getElementById('workspace-notes').value || '',
+    date: new Date().toISOString().split('T')[0]
+  });
+  localStorage.setItem('mir-sessions', JSON.stringify(sessions));
+  renderSessionSelector();
+}
+
+function loadWorkspaceSession(idx) {
+  const sessions = JSON.parse(localStorage.getItem('mir-sessions') || '[]');
+  if (!sessions[idx]) return;
+  const session = sessions[idx];
+  selectedRefs = new Set(session.refs);
+  saveSelection();
+  document.getElementById('workspace-notes').value = session.notes;
+  localStorage.setItem('mir-workspace-notes', session.notes);
+  showWorkspace();
+}
+
+function renderSessionSelector() {
+  const container = document.getElementById('session-selector');
+  if (!container) return;
+  const sessions = JSON.parse(localStorage.getItem('mir-sessions') || '[]');
+  if (sessions.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = `<select onchange="if(this.value!=='')loadWorkspaceSession(parseInt(this.value));this.value='';" class="workspace-input" style="font-size:10px;padding:4px 8px;width:auto;">
+    <option value="">Load session…</option>
+    ${sessions.map((s, i) => `<option value="${i}">${s.name} (${s.date})</option>`).join('')}
+  </select>`;
+}
+
+// ─── ARCHIVE ───
+let archivedItems = JSON.parse(localStorage.getItem('mir-archived') || '[]');
+let showArchived = false;
+let lastArchived = null;
+
+function archiveRef(file) {
+  if (!archivedItems.includes(file)) {
+    archivedItems.push(file);
+    localStorage.setItem('mir-archived', JSON.stringify(archivedItems));
+    lastArchived = { type: 'ref', file };
+    showUndoToast(`Archived reference`);
+    render();
+  }
+}
+
+function archiveArtifact(file) {
+  if (!archivedItems.includes(file)) {
+    archivedItems.push(file);
+    localStorage.setItem('mir-archived', JSON.stringify(archivedItems));
+    lastArchived = { type: 'artifact', file };
+    showUndoToast(`Archived artifact`);
+    render();
+  }
+}
+
+function undoArchive() {
+  if (!lastArchived) return;
+  archivedItems = archivedItems.filter(f => f !== lastArchived.file);
+  localStorage.setItem('mir-archived', JSON.stringify(archivedItems));
+  lastArchived = null;
+  hideUndoToast();
+  render();
+}
+
+function showUndoToast(text) {
+  const toast = document.getElementById('undo-toast');
+  document.getElementById('undo-toast-text').textContent = text;
+  toast.classList.add('visible');
+  setTimeout(() => hideUndoToast(), 5000);
+}
+
+function hideUndoToast() {
+  document.getElementById('undo-toast').classList.remove('visible');
+}
+
+function toggleShowArchived() {
+  showArchived = !showArchived;
+  const btn = document.getElementById('archive-toggle');
+  btn.style.opacity = showArchived ? '1' : '0.4';
+  render();
+}
+
 // ─── DOCS ───
+// ─── ARTIFACT VIEWER ───
+let currentArtifactFile = '';
+function openArtifact(file, title) {
+  currentArtifactFile = file;
+  document.getElementById('artifact-viewer-title').textContent = title;
+  document.getElementById('artifact-viewer-frame').src = file;
+  document.getElementById('artifact-viewer').style.display = '';
+}
+function closeArtifactViewer() {
+  document.getElementById('artifact-viewer').style.display = 'none';
+  document.getElementById('artifact-viewer-frame').src = '';
+  currentArtifactFile = '';
+}
+function openArtifactNewTab() {
+  if (currentArtifactFile) window.open(currentArtifactFile, '_blank');
+}
+
 function toggleDocs() {
   document.getElementById('docs-overlay').classList.toggle('open');
 }
@@ -1472,7 +1725,9 @@ function toggleDocs() {
 // ─── KEYBOARD ───
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (document.getElementById('docs-overlay').classList.contains('open')) {
+    if (document.getElementById('artifact-viewer').style.display !== 'none') {
+      closeArtifactViewer();
+    } else if (document.getElementById('docs-overlay').classList.contains('open')) {
       toggleDocs();
     } else if (document.getElementById('lightbox').classList.contains('open')) {
       closeLightbox();
