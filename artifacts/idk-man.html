@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>idk man</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lekton:wght@400;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #F5F0E8; overflow: hidden; font-family: 'Lekton', monospace; cursor: default; }
+  canvas { display: block; position: fixed; top: 0; left: 0; }
+  #hud { position: fixed; top: 20px; left: 24px; z-index: 10; pointer-events: none; }
+  #hud h1 { font-size: 10px; font-weight: 700; color: #3D6DF4; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.4; }
+  #hud p { font-size: 9px; color: #00000020; letter-spacing: 0.08em; text-transform: uppercase; }
+  #count { position: fixed; bottom: 16px; right: 24px; z-index: 10; pointer-events: none; }
+  #count p { font-size: 9px; color: #00000012; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <h1>ø co. / idk man</h1>
+  <p>modular isometric park goers</p>
+</div>
+<div id="count">
+  <p id="countText">park pop: 00</p>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, t = 0;
+let mx = 0, my = 0;
+
+function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+addEventListener('resize', resize); resize();
+addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+// Seeded random
+function srand(s) { return function() { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+
+// --- PARK GOER TYPES ---
+// Each is a tiny function that draws a figure at (0,0) facing right
+const GOER_TYPES = [
+  // 0: Standing person (circle head + line body)
+  (ctx, color, sz, phase) => {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, -sz * 1.8, sz * 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 1.4); ctx.lineTo(0, 0); ctx.stroke();
+    // legs
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-sz * 0.3, sz * 0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(sz * 0.3, sz * 0.5); ctx.stroke();
+  },
+  // 1: Walking person (animated legs)
+  (ctx, color, sz, phase) => {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, -sz * 1.8, sz * 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 1.4); ctx.lineTo(0, 0); ctx.stroke();
+    const legSwing = Math.sin(phase * 4) * sz * 0.4;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-legSwing, sz * 0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(legSwing, sz * 0.5); ctx.stroke();
+    // arm
+    ctx.beginPath(); ctx.moveTo(0, -sz); ctx.lineTo(legSwing * 0.5, -sz * 0.4); ctx.stroke();
+  },
+  // 2: Sitting person (on bench/ground)
+  (ctx, color, sz, phase) => {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, -sz * 1.2, sz * 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 0.8); ctx.lineTo(0, -sz * 0.2); ctx.stroke();
+    // bent legs
+    ctx.beginPath(); ctx.moveTo(0, -sz * 0.2); ctx.lineTo(sz * 0.5, -sz * 0.2); ctx.lineTo(sz * 0.5, sz * 0.3); ctx.stroke();
+  },
+  // 3: Dog walker
+  (ctx, color, sz, phase) => {
+    // Person
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, -sz * 1.8, sz * 0.35, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 1.4); ctx.lineTo(0, 0); ctx.stroke();
+    const legSwing = Math.sin(phase * 3) * sz * 0.3;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-legSwing, sz * 0.4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(legSwing, sz * 0.4); ctx.stroke();
+    // Leash
+    ctx.strokeStyle = color + '40'; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 0.6); ctx.quadraticCurveTo(sz * 1, sz * 0.2, sz * 1.5, 0); ctx.stroke();
+    // Dog (small)
+    ctx.fillStyle = color + '80';
+    ctx.fillRect(sz * 1.2, -sz * 0.2, sz * 0.6, sz * 0.3);
+    ctx.beginPath(); ctx.arc(sz * 1.8, -sz * 0.2, sz * 0.15, 0, Math.PI * 2); ctx.fill();
+  },
+  // 4: Umbrella person
+  (ctx, color, sz, phase) => {
+    // Umbrella
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, -sz * 2.6, sz * 0.9, Math.PI, 0); ctx.fill();
+    // Pole
+    ctx.strokeStyle = '#00000030'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 2.6); ctx.lineTo(0, -sz * 0.8); ctx.stroke();
+    // Person underneath
+    ctx.fillStyle = '#00000040';
+    ctx.beginPath(); ctx.arc(0, -sz * 0.8, sz * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#00000030'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 0.5); ctx.lineTo(0, sz * 0.2); ctx.stroke();
+  },
+  // 5: Cyclist
+  (ctx, color, sz, phase) => {
+    // Wheels
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(-sz * 0.5, sz * 0.1, sz * 0.4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(sz * 0.5, sz * 0.1, sz * 0.4, 0, Math.PI * 2); ctx.stroke();
+    // Frame
+    ctx.beginPath(); ctx.moveTo(-sz * 0.5, sz * 0.1); ctx.lineTo(0, -sz * 0.4); ctx.lineTo(sz * 0.5, sz * 0.1); ctx.stroke();
+    // Rider
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, -sz * 0.9, sz * 0.25, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -sz * 0.65); ctx.lineTo(0, -sz * 0.2); ctx.stroke();
+    // Spokes spin
+    const spoke = phase * 6;
+    for (let i = 0; i < 4; i++) {
+      const a = spoke + i * Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(-sz * 0.5, sz * 0.1);
+      ctx.lineTo(-sz * 0.5 + Math.cos(a) * sz * 0.35, sz * 0.1 + Math.sin(a) * sz * 0.35);
+      ctx.strokeStyle = color + '30'; ctx.lineWidth = 0.5; ctx.stroke();
+    }
+  },
+];
+
+// --- PARK ELEMENTS ---
+function drawTree(x, y, sz) {
+  ctx.fillStyle = '#2a5a2a20';
+  ctx.beginPath(); ctx.arc(x, y - sz * 1.5, sz * 0.8, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#00000008'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x, y - sz * 0.7); ctx.lineTo(x, y); ctx.stroke();
+}
+
+function drawBench(x, y, sz) {
+  ctx.strokeStyle = '#00000015'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x - sz, y - sz * 0.2, sz * 2, sz * 0.15);
+  // Legs
+  ctx.beginPath(); ctx.moveTo(x - sz * 0.8, y - sz * 0.05); ctx.lineTo(x - sz * 0.8, y + sz * 0.3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + sz * 0.8, y - sz * 0.05); ctx.lineTo(x + sz * 0.8, y + sz * 0.3); ctx.stroke();
+}
+
+function drawPath(x1, y1, x2, y2) {
+  ctx.strokeStyle = '#00000006'; ctx.lineWidth = 8;
+  ctx.setLineDash([2, 6]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// --- GENERATE PARK ---
+const rng = srand(42);
+const NUM_GOERS = 24;
+const PALETTE = ['#3D6DF4', '#F46138', '#CE2867', '#2C9FF4', '#333333', '#228B22', '#8B4513'];
+
+class ParkGoer {
+  constructor(i) {
+    this.i = i;
+    this.type = Math.floor(rng() * GOER_TYPES.length);
+    this.color = PALETTE[Math.floor(rng() * PALETTE.length)];
+    this.size = 5 + rng() * 4;
+
+    // Position and movement
+    this.homeX = W * 0.1 + rng() * W * 0.8;
+    this.homeY = H * 0.15 + rng() * H * 0.7;
+    this.x = this.homeX;
+    this.y = this.homeY;
+    this.speed = 0.1 + rng() * 0.4;
+    this.wanderR = 20 + rng() * 80;
+    this.wanderPhase = rng() * Math.PI * 2;
+    this.wanderSpeed = 0.002 + rng() * 0.008;
+    this.label = (rng() * 0.99 + 0.01).toFixed(2);
+
+    // Social connections
+    this.friends = [];
+  }
+
+  update() {
+    // Gentle wander around home position
+    const wx = Math.sin(t * this.wanderSpeed + this.wanderPhase) * this.wanderR;
+    const wy = Math.cos(t * this.wanderSpeed * 0.7 + this.wanderPhase + 1) * this.wanderR * 0.5;
+
+    // Mouse gentle attraction
+    const dx = mx - this.x;
+    const dy = my - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const attract = Math.max(0, 1 - dist / 250) * 15;
+    const ax = dist > 0 ? (dx / dist) * attract : 0;
+    const ay = dist > 0 ? (dy / dist) * attract : 0;
+
+    this.x += (this.homeX + wx + ax - this.x) * 0.02;
+    this.y += (this.homeY + wy + ay - this.y) * 0.02;
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    // Tiny shadow
+    ctx.fillStyle = '#00000006';
+    ctx.beginPath(); ctx.ellipse(0, this.size * 0.5 + 1, this.size * 0.6, this.size * 0.15, 0, 0, Math.PI * 2); ctx.fill();
+    // Draw goer
+    GOER_TYPES[this.type](ctx, this.color, this.size, t + this.i);
+    ctx.restore();
+
+    // Label
+    ctx.fillStyle = '#00000018';
+    ctx.font = '9px Lekton';
+    ctx.fillText(this.label, this.x + this.size + 3, this.y - this.size * 0.5);
+  }
+}
+
+// Generate goers
+const goers = [];
+for (let i = 0; i < NUM_GOERS; i++) goers.push(new ParkGoer(i));
+
+// Generate social connections (random pairs)
+for (let i = 0; i < NUM_GOERS; i++) {
+  const numFriends = Math.floor(rng() * 3);
+  for (let f = 0; f < numFriends; f++) {
+    const j = Math.floor(rng() * NUM_GOERS);
+    if (j !== i && !goers[i].friends.includes(j)) {
+      goers[i].friends.push(j);
+    }
+  }
+}
+
+// Park furniture
+const trees = [];
+for (let i = 0; i < 8; i++) trees.push({ x: W * 0.05 + rng() * W * 0.9, y: H * 0.1 + rng() * H * 0.8, s: 10 + rng() * 15 });
+
+const benches = [];
+for (let i = 0; i < 4; i++) benches.push({ x: W * 0.15 + rng() * W * 0.7, y: H * 0.2 + rng() * H * 0.6, s: 10 + rng() * 6 });
+
+// --- GRID ---
+function drawGrid() {
+  ctx.strokeStyle = '#00000004';
+  ctx.lineWidth = 0.5;
+  const gs = 40;
+  for (let x = 0; x < W; x += gs) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += gs) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+}
+
+// --- CONNECTION LINES ---
+function drawConnections() {
+  for (const g of goers) {
+    for (const fi of g.friends) {
+      const f = goers[fi];
+      const dx = g.x - f.x;
+      const dy = g.y - f.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // Only draw if close enough
+      if (dist > 400) continue;
+
+      const alpha = Math.max(0.02, 0.08 * (1 - dist / 400));
+      ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+      ctx.lineWidth = 0.6;
+
+      // Curved connection
+      const midX = (g.x + f.x) / 2;
+      const midY = (g.y + f.y) / 2 - 20 - Math.sin(t * 0.3 + g.i) * 10;
+      ctx.beginPath();
+      ctx.moveTo(g.x, g.y - g.size);
+      ctx.quadraticCurveTo(midX, midY, f.x, f.y - f.size);
+      ctx.stroke();
+
+      // Arrow at midpoint
+      const arrowX = midX;
+      const arrowY = midY + 5;
+      ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(arrowX, arrowY);
+      ctx.lineTo(arrowX - 2, arrowY - 4);
+      ctx.lineTo(arrowX + 2, arrowY - 4);
+      ctx.fill();
+    }
+  }
+}
+
+// --- MAIN LOOP ---
+function animate() {
+  t += 0.016;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#F5F0E8';
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+
+  // Paths between some benches
+  for (let i = 0; i < benches.length - 1; i++) {
+    drawPath(benches[i].x, benches[i].y, benches[i + 1].x, benches[i + 1].y);
+  }
+
+  // Trees (behind goers)
+  for (const tr of trees) drawTree(tr.x, tr.y, tr.s);
+
+  // Benches
+  for (const b of benches) drawBench(b.x, b.y, b.s);
+
+  // Connection lines (behind goers)
+  drawConnections();
+
+  // Update and draw goers (sort by Y for depth)
+  for (const g of goers) g.update();
+  goers.sort((a, b) => a.y - b.y);
+  for (const g of goers) g.draw();
+
+  // Mouse circle (subtle)
+  ctx.strokeStyle = '#3D6DF410';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.arc(mx, my, 60 + Math.sin(t * 1.5) * 10, 0, Math.PI * 2);
+  ctx.stroke();
+
+  document.getElementById('countText').textContent = `park pop: ${String(NUM_GOERS).padStart(2, '0')}`;
+
+  requestAnimationFrame(animate);
+}
+
+// Handle resize — regenerate positions
+addEventListener('resize', () => {
+  resize();
+  const r = srand(42);
+  for (const g of goers) {
+    g.homeX = W * 0.1 + r() * W * 0.8;
+    g.homeY = H * 0.15 + r() * H * 0.7;
+  }
+});
+
+animate();
+</script>
+</body>
+</html>
