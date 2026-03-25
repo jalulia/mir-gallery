@@ -157,6 +157,9 @@ const audio = {
   freqData: null,
   bands: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
   smoothed: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
+  prev: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
+  // Transients: fast-attack, slow-decay values that spike on hits
+  hit: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
   isLoaded: false,
   fileName: '',
 
@@ -241,6 +244,19 @@ const audio = {
     this.bands.mid = Math.min(1, s.mid * 2.5);
     this.bands.high = Math.min(1, s.high * 3.5);
     this.bands.energy = Math.min(1, s.energy * 2.5);
+
+    // Transient detection — spike on sudden increases, fast decay
+    for (const k of ['bass', 'lowMid', 'mid', 'high', 'energy']) {
+      const delta = this.bands[k] - this.prev[k];
+      if (delta > 0.05) {
+        // Hit! Jump up proportional to the spike
+        this.hit[k] = Math.min(1, this.hit[k] + delta * 3);
+      }
+      // Fast decay
+      this.hit[k] *= 0.88;
+      if (this.hit[k] < 0.01) this.hit[k] = 0;
+      this.prev[k] = this.bands[k];
+    }
   }
 };
 
@@ -351,15 +367,35 @@ class Body {
       }
       ctx.globalAlpha = 1;
     }
+    // Body dot
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
     ctx.fill();
+    // Ambient glow
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
     ctx.globalAlpha = 0.06 + audio.bands.bass * 0.06;
     ctx.fill();
+    // FLASH on energy transients ("DO" hits)
+    const eHit = audio.hit.energy;
+    if (eHit > 0.1) {
+      // Expanding ring
+      const flashR = this.size + eHit * 30;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, flashR, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = eHit * 0.6;
+      ctx.lineWidth = 1 + eHit * 2;
+      ctx.stroke();
+      // Inner bright flash
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = eHit * 0.4;
+      ctx.fill();
+    }
     ctx.globalAlpha = 1;
   }
 }
@@ -378,24 +414,27 @@ class Wave {
   }
 
   draw(cx, cy, w, influence) {
-    const bandBoost = audio.bands[WAVE_BANDS[this.i]] || 0;
+    const band = WAVE_BANDS[this.i];
+    const bandBoost = audio.bands[band] || 0;
+    const hitVal = audio.hit[band] || 0;
     ctx.beginPath();
     const segments = 200;
     for (let j = 0; j <= segments; j++) {
       const x = cx - w / 2 + (j / segments) * w;
       const phase = t * (1.5 + this.i * 0.3) + this.phase;
       const envelope = Math.sin((j / segments) * Math.PI);
-      const y = cy + Math.sin(j * this.freq * 0.03 + phase) * this.amp * envelope * (0.6 + influence * 0.6 + bandBoost * 1.5);
+      const y = cy + Math.sin(j * this.freq * 0.03 + phase) * this.amp * envelope * (0.6 + influence * 0.6 + bandBoost * 1.2);
       if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.lw + influence * 0.5 + bandBoost * 2;
-    ctx.globalAlpha = Math.min(1, 0.25 + influence * 0.3 + bandBoost * 0.6);
+    // Thin baseline — only pulse thick on drum hits (transients)
+    ctx.lineWidth = this.lw + influence * 0.3 + hitVal * 4;
+    ctx.globalAlpha = Math.min(1, 0.3 + influence * 0.25 + bandBoost * 0.3);
     ctx.stroke();
-    // Glow pass when band is hot
-    if (bandBoost > 0.3) {
-      ctx.globalAlpha = (bandBoost - 0.3) * 0.3;
-      ctx.lineWidth = this.lw + bandBoost * 6;
+    // Flash glow on transient hits
+    if (hitVal > 0.15) {
+      ctx.globalAlpha = hitVal * 0.5;
+      ctx.lineWidth = this.lw + hitVal * 8;
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
