@@ -74,6 +74,21 @@
     letter-spacing: 1px;
     font-variant-numeric: tabular-nums;
   }
+  #dropZone { position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;justify-content:center;pointer-events:none; }
+  #dropZone.active { pointer-events:auto; }
+  #dropZone p { font-size:11px;color:#3B82F6;letter-spacing:0.1em;text-transform:uppercase;opacity:0.08;border:1px dashed #3B82F620;padding:10px 20px;border-radius:6px;cursor:pointer;pointer-events:auto; }
+  #dropZone p:hover { opacity:0.2; }
+  #dropZone.loaded { display:none; }
+  #transport { position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:15;display:none;align-items:center;gap:10px;padding:6px 16px;border-radius:5px;background:rgba(10,10,10,0.5);backdrop-filter:blur(6px);border:1px solid #ffffff06; }
+  #transport.visible { display:flex; }
+  #transport * { font-family:'Space Mono',monospace; }
+  #trackName { font-size:9px;color:#ffffff20;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  #playBtn { background:none;border:none;color:#3B82F6;font-size:12px;cursor:pointer;opacity:0.4; }
+  #playBtn:hover { opacity:0.8; }
+  #progressWrap { width:140px;height:14px;display:flex;align-items:center;cursor:pointer; }
+  #progressTrack { width:100%;height:2px;background:#ffffff10;border-radius:1px;overflow:hidden; }
+  #progressFill { height:100%;background:#3B82F6;width:0%;opacity:0.4; }
+  #timeDisplay { font-size:9px;color:#ffffff15;font-variant-numeric:tabular-nums;white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -87,6 +102,14 @@
 </div>
 <div id="coords">
   <p id="coordText">x: 0000 &nbsp; y: 0000</p>
+</div>
+<div id="dropZone" class="active"><p onclick="document.getElementById('fp').click()">drop audio</p></div>
+<input type="file" id="fp" accept="audio/*" style="display:none">
+<div id="transport">
+  <span id="trackName">---</span>
+  <button id="playBtn">&#9654;</button>
+  <div id="progressWrap" onclick="seekA(event)"><div id="progressTrack"><div id="progressFill"></div></div></div>
+  <span id="timeDisplay">0:00</span>
 </div>
 <script>
 const canvas = document.getElementById('c');
@@ -118,6 +141,45 @@ window.addEventListener('touchmove', e => {
   my = e.touches[0].clientY;
   e.preventDefault();
 }, { passive: false });
+
+// --- AUDIO ENGINE ---
+const A = {
+  ctx:null,an:null,src:null,el:null,fd:null,
+  b:{bass:0,low:0,mid:0,hi:0,en:0},s:{bass:0,low:0,mid:0,hi:0,en:0},
+  p:{bass:0,low:0,mid:0,hi:0,en:0},hit:{bass:0,low:0,mid:0,hi:0,en:0},
+  ok:false,
+  init(f){
+    if(this.el){this.el.pause();if(this.src)this.src.disconnect();URL.revokeObjectURL(this.el.src);}
+    if(!this.ctx)this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    this.ctx.resume();this.el=new Audio();this.el.crossOrigin='anonymous';
+    this.el.src=URL.createObjectURL(f);
+    this.src=this.ctx.createMediaElementSource(this.el);
+    this.an=this.ctx.createAnalyser();this.an.fftSize=2048;this.an.smoothingTimeConstant=0.8;
+    this.src.connect(this.an);this.an.connect(this.ctx.destination);
+    this.fd=new Uint8Array(this.an.frequencyBinCount);this.ok=true;
+    document.getElementById('dropZone').classList.add('loaded');
+    document.getElementById('transport').classList.add('visible');
+    document.getElementById('trackName').textContent=f.name.replace(/\.[^.]+$/,'');
+    this.el.play();document.getElementById('playBtn').innerHTML='&#9646;&#9646;';
+  },
+  upd(){
+    if(!this.ok)return;this.an.getByteFrequencyData(this.fd);
+    const bh=this.ctx.sampleRate/2048,be=Math.round(250/bh),le=Math.round(1000/bh),me=Math.round(4000/bh),he=Math.min(Math.round(20000/bh),this.fd.length);
+    const avg=(d,a,b)=>{let s=0;const c=Math.max(1,b-a);for(let i=a;i<b;i++)s+=d[i];return s/c/255;};
+    const r={bass:avg(this.fd,1,be),low:avg(this.fd,be,le),mid:avg(this.fd,le,me),hi:avg(this.fd,me,he),en:avg(this.fd,0,this.fd.length)};
+    const s=this.s;
+    s.bass=s.bass*.87+r.bass*.13;s.low=s.low*.85+r.low*.15;s.mid=s.mid*.84+r.mid*.16;s.hi=s.hi*.82+r.hi*.18;s.en=s.en*.85+r.en*.15;
+    this.b.bass=Math.min(1,s.bass*3);this.b.low=Math.min(1,s.low*2.8);this.b.mid=Math.min(1,s.mid*2.5);this.b.hi=Math.min(1,s.hi*3.5);this.b.en=Math.min(1,s.en*2.5);
+    for(const k of['bass','low','mid','hi','en']){const d=this.b[k]-this.p[k];if(d>.05)this.hit[k]=Math.min(1,this.hit[k]+d*3);this.hit[k]*=.87;if(this.hit[k]<.01)this.hit[k]=0;this.p[k]=this.b[k];}
+  }
+};
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('audio/'))A.init(f);});
+document.getElementById('fp').addEventListener('change',e=>{if(e.target.files[0])A.init(e.target.files[0]);});
+document.getElementById('playBtn').addEventListener('click',()=>{if(!A.el)return;if(A.el.paused){A.ctx.resume();A.el.play();document.getElementById('playBtn').innerHTML='&#9646;&#9646;';}else{A.el.pause();document.getElementById('playBtn').innerHTML='&#9654;';}});
+function seekA(e){if(!A.el)return;const r=document.getElementById('progressWrap').getBoundingClientRect();A.el.currentTime=((e.clientX-r.left)/r.width)*A.el.duration;}
+function updT(){if(!A.el||!A.ok)return;const c=A.el.currentTime,d=A.el.duration||0;document.getElementById('progressFill').style.width=d?`${c/d*100}%`:'0%';const fmt=s=>isNaN(s)?'0:00':`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;document.getElementById('timeDisplay').textContent=fmt(c)+' / '+fmt(d);}
+
 function drawCircle(x, y, r, color, lineWidth = 1) {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -388,61 +450,72 @@ function drawFloaters() {
   }
 }
 function animate() {
-  t += 0.016;
+  A.upd();
+  t += 0.016 * (1 + A.b.en * 0.8);
   smx += (mx - smx) * 0.08;
   smy += (my - smy) * 0.08;
-  const centerDist = Math.sqrt((smx - W/2) ** 2 + (smy - H/2) ** 2);
-  const maxDist = Math.sqrt(W*W + H*H) / 2;
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, H);
-  ctx.globalAlpha = 0.04;
+  // Grid — pulses with energy
+  ctx.globalAlpha = 0.04 + A.b.en * 0.03;
   const gridSize = 40;
-  for (let x = 0; x < W; x += gridSize) {
-    drawLine(x, 0, x, H, BLUE, 0.5);
-  }
-  for (let y = 0; y < H; y += gridSize) {
-    drawLine(0, y, W, y, BLUE, 0.5);
-  }
+  for (let x = 0; x < W; x += gridSize) drawLine(x, 0, x, H, BLUE, 0.5);
+  for (let y = 0; y < H; y += gridSize) drawLine(0, y, W, y, BLUE, 0.5);
   ctx.globalAlpha = 1;
-  function getInfluence(cx, cy) {
+
+  // Influence = mouse + audio band (additive)
+  function getInf(cx, cy, band) {
     const d = Math.sqrt((smx - cx) ** 2 + (smy - cy) ** 2);
-    return Math.max(0, 1 - d / 400);
+    const mouseInf = Math.max(0, 1 - d / 400);
+    const audioInf = band ? (A.b[band] || 0) : A.b.en;
+    return Math.min(2, mouseInf + audioInf * 1.5);
   }
-  const cellW = W / 3;
-  const cellH = H / 3;
+
+  const cellW = W / 3, cellH = H / 3;
   drawFloaters();
-  const m1x = cellW * 0.65, m1y = cellH * 0.7;
-  drawOrbitalSystem(m1x, m1y, Math.min(cellW, cellH) * 0.7, getInfluence(m1x, m1y));
-  const m2x = cellW * 2.4, m2y = cellH * 0.65;
-  drawWireSphere(m2x, m2y, Math.min(cellW, cellH) * 0.75, getInfluence(m2x, m2y));
-  const m3x = cellW * 0.6, m3y = cellH * 1.65;
-  drawNestedRects(m3x, m3y, Math.min(cellW, cellH) * 0.65, getInfluence(m3x, m3y));
-  const m4x = cellW * 2.1, m4y = cellH * 1.5;
-  drawDistortedGrid(m4x, m4y, Math.min(cellW, cellH) * 0.8, getInfluence(m4x, m4y));
-  const m5x = cellW * 0.65, m5y = cellH * 2.45;
-  drawSpirograph(m5x, m5y, Math.min(cellW, cellH) * 0.7, getInfluence(m5x, m5y));
-  const m6x = cellW * 2.2, m6y = cellH * 2.4;
-  drawLissajous(m6x, m6y, Math.min(cellW, cellH) * 0.75, getInfluence(m6x, m6y));
-  const mcx = cellW * 1.5, mcy = cellH * 1.5;
-  const ci = getInfluence(mcx, mcy);
-  ctx.globalAlpha = 0.4 + ci * 0.6;
-  drawSpirograph(mcx, mcy, Math.min(cellW, cellH) * 0.5, ci);
-  ctx.globalAlpha = 1;
-  const modules = [[m1x,m1y],[m2x,m2y],[m3x,m3y],[m4x,m4y],[m5x,m5y],[m6x,m6y]];
-  for (let i = 0; i < modules.length; i++) {
-    const d = Math.sqrt((smx - modules[i][0]) ** 2 + (smy - modules[i][1]) ** 2);
-    if (d < 350) {
-      const alpha = (1 - d / 350) * 0.15;
-      ctx.globalAlpha = alpha;
-      drawLine(smx, smy, modules[i][0], modules[i][1], BLUE, 0.8);
-      drawDot(modules[i][0], modules[i][1], 4, BLUE);
-      ctx.globalAlpha = 1;
+
+  // Each module mapped to a frequency band
+  const m1x=cellW*0.65,m1y=cellH*0.7;
+  drawOrbitalSystem(m1x,m1y,Math.min(cellW,cellH)*0.7,getInf(m1x,m1y,'bass'));     // BASS → orbits
+  const m2x=cellW*2.4,m2y=cellH*0.65;
+  drawWireSphere(m2x,m2y,Math.min(cellW,cellH)*0.75,getInf(m2x,m2y,'hi'));          // HIGH → wire sphere
+  const m3x=cellW*0.6,m3y=cellH*1.65;
+  drawNestedRects(m3x,m3y,Math.min(cellW,cellH)*0.65,getInf(m3x,m3y,'mid'));        // MID → nested rects
+  const m4x=cellW*2.1,m4y=cellH*1.5;
+  drawDistortedGrid(m4x,m4y,Math.min(cellW,cellH)*0.8,getInf(m4x,m4y,'low'));       // LOW → distorted grid
+  const m5x=cellW*0.65,m5y=cellH*2.45;
+  drawSpirograph(m5x,m5y,Math.min(cellW,cellH)*0.7,getInf(m5x,m5y,'bass'));         // BASS → spirograph
+  const m6x=cellW*2.2,m6y=cellH*2.4;
+  drawLissajous(m6x,m6y,Math.min(cellW,cellH)*0.75,getInf(m6x,m6y,'mid'));          // MID → lissajous
+
+  // Center spirograph — driven by overall energy
+  const mcx=cellW*1.5,mcy=cellH*1.5;
+  const ci=getInf(mcx,mcy,'en');
+  ctx.globalAlpha=0.4+ci*0.6;
+  drawSpirograph(mcx,mcy,Math.min(cellW,cellH)*0.5,ci);
+  ctx.globalAlpha=1;
+
+  // Connection lines
+  const modules=[[m1x,m1y],[m2x,m2y],[m3x,m3y],[m4x,m4y],[m5x,m5y],[m6x,m6y]];
+  const modBands=['bass','hi','mid','low','bass','mid'];
+  for (let i=0;i<modules.length;i++){
+    const d=Math.sqrt((smx-modules[i][0])**2+(smy-modules[i][1])**2);
+    const audioPull=A.b[modBands[i]]||0;
+    if(d<350||audioPull>0.3){
+      const alpha=Math.max((1-d/350)*0.15,audioPull*0.12);
+      ctx.globalAlpha=alpha;
+      drawLine(smx,smy,modules[i][0],modules[i][1],BLUE,0.8);
+      drawDot(modules[i][0],modules[i][1],4+audioPull*4,BLUE);
+      ctx.globalAlpha=1;
     }
   }
-  drawCircle(smx, smy, 20 + Math.sin(t * 2) * 5, ORANGE_DIM, 1);
-  drawCircle(smx, smy, 35 + Math.cos(t * 1.5) * 8, BLUE_DIM, 0.6);
-  drawDot(smx, smy, 2, ORANGE);
+
+  drawCircle(smx,smy,20+Math.sin(t*2)*5,ORANGE_DIM,1);
+  drawCircle(smx,smy,35+Math.cos(t*1.5)*8,BLUE_DIM,0.6);
+  drawDot(smx,smy,2,ORANGE);
+
+  updT();
   requestAnimationFrame(animate);
 }
 mx = W / 2;
