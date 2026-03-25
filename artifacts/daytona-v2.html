@@ -235,12 +235,12 @@ const audio = {
     s.high = s.high * 0.82 + raw.high * 0.18;
     s.energy = s.energy * 0.85 + raw.energy * 0.15;
 
-    // Copy to bands
-    this.bands.bass = s.bass;
-    this.bands.lowMid = s.lowMid;
-    this.bands.mid = s.mid;
-    this.bands.high = s.high;
-    this.bands.energy = s.energy;
+    // Amplify and clamp — raw FFT averages are often 0.1-0.3, need to push to 0-1 range
+    this.bands.bass = Math.min(1, s.bass * 3.0);
+    this.bands.lowMid = Math.min(1, s.lowMid * 2.8);
+    this.bands.mid = Math.min(1, s.mid * 2.5);
+    this.bands.high = Math.min(1, s.high * 3.5);
+    this.bands.energy = Math.min(1, s.energy * 2.5);
   }
 };
 
@@ -324,7 +324,7 @@ class Body {
 
   update(cx, cy, influence) {
     const a = t * this.speed + this.phase;
-    const r = this.orbitR * (0.8 + influence * 0.4);
+    const r = this.orbitR * (0.8 + influence * 0.8);
     const helixX = cx + Math.cos(a) * r * Math.cos(this.tilt);
     const helixY = cy + Math.sin(a) * r * 0.5;
     const wave = Math.sin(a * 2 + this.phase) * 15 * this.wobble * (1 + influence);
@@ -385,13 +385,19 @@ class Wave {
       const x = cx - w / 2 + (j / segments) * w;
       const phase = t * (1.5 + this.i * 0.3) + this.phase;
       const envelope = Math.sin((j / segments) * Math.PI);
-      const y = cy + Math.sin(j * this.freq * 0.03 + phase) * this.amp * envelope * (0.6 + influence * 0.6 + bandBoost * 0.5);
+      const y = cy + Math.sin(j * this.freq * 0.03 + phase) * this.amp * envelope * (0.6 + influence * 0.6 + bandBoost * 1.5);
       if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.lw + influence * 0.5 + bandBoost * 0.5;
-    ctx.globalAlpha = 0.35 + influence * 0.4 + bandBoost * 0.2;
+    ctx.lineWidth = this.lw + influence * 0.5 + bandBoost * 2;
+    ctx.globalAlpha = Math.min(1, 0.25 + influence * 0.3 + bandBoost * 0.6);
     ctx.stroke();
+    // Glow pass when band is hot
+    if (bandBoost > 0.3) {
+      ctx.globalAlpha = (bandBoost - 0.3) * 0.3;
+      ctx.lineWidth = this.lw + bandBoost * 6;
+      ctx.stroke();
+    }
     ctx.globalAlpha = 1;
   }
 }
@@ -404,12 +410,12 @@ function drawInterference(cx, cy, w, h, influence) {
     const wave1 = Math.sin(i * 0.15 + t * 1.5) * 0.5 + 0.5;
     const wave2 = Math.sin(i * 0.25 + t * 1.2 + 1) * 0.5 + 0.5;
     const combined = wave1 * wave2;
-    const lineH = combined * h * 0.4 * (0.5 + influence * 0.8);
+    const lineH = combined * h * 0.4 * (0.5 + influence * 1.5);
     ctx.beginPath();
     ctx.moveTo(x, cy - lineH);
     ctx.lineTo(x, cy + lineH);
     ctx.strokeStyle = EH;
-    ctx.globalAlpha = combined * 0.15 + influence * 0.1;
+    ctx.globalAlpha = combined * 0.15 + influence * 0.25;
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -418,8 +424,8 @@ function drawInterference(cx, cy, w, h, influence) {
 
 // --- RADIAL BURST ---
 function drawConvergence(x, y, influence) {
-  const n = 16;
-  const r = 80 + influence * 40;
+  const n = 16 + Math.floor(influence * 8);
+  const r = 80 + influence * 100;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + t * 0.05;
     const len = r * (0.5 + Math.sin(t * 0.8 + i * 0.5) * 0.3);
@@ -431,7 +437,7 @@ function drawConvergence(x, y, influence) {
     ctx.stroke();
   }
   ctx.beginPath();
-  ctx.arc(x, y, 3 + influence * 3, 0, Math.PI * 2);
+  ctx.arc(x, y, 3 + influence * 8, 0, Math.PI * 2);
   ctx.fillStyle = SE;
   ctx.globalAlpha = 0.6 + influence * 0.4;
   ctx.fill();
@@ -467,49 +473,52 @@ const waves = [new Wave(0), new Wave(1), new Wave(2)];
 
 // --- SUN ---
 function drawSun(x, y, influence) {
-  const grad = ctx.createRadialGradient(x, y, 0, x, y, 40 + influence * 20);
-  grad.addColorStop(0, 'rgba(244,97,56,0.4)');
-  grad.addColorStop(0.5, 'rgba(244,97,56,0.08)');
+  const glowR = 40 + influence * 60;
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+  grad.addColorStop(0, `rgba(244,97,56,${0.4 + influence * 0.3})`);
+  grad.addColorStop(0.5, `rgba(244,97,56,${0.08 + influence * 0.1})`);
   grad.addColorStop(1, 'rgba(244,97,56,0)');
   ctx.fillStyle = grad;
-  ctx.fillRect(x - 80, y - 80, 160, 160);
+  const sz = glowR * 2;
+  ctx.fillRect(x - sz/2, y - sz/2, sz, sz);
   ctx.beginPath();
-  ctx.arc(x, y, 8 + influence * 3, 0, Math.PI * 2);
+  ctx.arc(x, y, 8 + influence * 10, 0, Math.PI * 2);
   ctx.fillStyle = SE;
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(x, y, 14 + Math.sin(t) * 2 + influence * 4, 0, Math.PI * 2);
+  ctx.arc(x, y, 14 + Math.sin(t) * 2 + influence * 12, 0, Math.PI * 2);
   ctx.strokeStyle = SE;
-  ctx.globalAlpha = 0.2;
-  ctx.lineWidth = 0.8;
+  ctx.globalAlpha = 0.2 + influence * 0.3;
+  ctx.lineWidth = 0.8 + influence * 1;
   ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
 // --- FORWARD BEAM ---
 function drawBeam(sx, sy, influence) {
+  const beamH = 1 + influence * 4;
   const grad = ctx.createLinearGradient(sx, sy, W, sy);
-  grad.addColorStop(0, 'rgba(244,161,56,0.25)');
-  grad.addColorStop(0.4, 'rgba(244,161,56,0.06)');
+  grad.addColorStop(0, `rgba(244,161,56,${0.25 + influence * 0.3})`);
+  grad.addColorStop(0.4, `rgba(244,161,56,${0.06 + influence * 0.1})`);
   grad.addColorStop(1, 'rgba(244,161,56,0)');
   ctx.fillStyle = grad;
-  ctx.globalAlpha = 0.3 + influence * 0.3;
-  ctx.fillRect(sx, sy - 1, W - sx, 2);
+  ctx.globalAlpha = 0.3 + influence * 0.5;
+  ctx.fillRect(sx, sy - beamH/2, W - sx, beamH);
   ctx.globalAlpha = 1;
 }
 
-// --- INFLUENCE (mouse + audio) ---
+// --- INFLUENCE (mouse + audio, additive) ---
 function getInf(cx, cy, band) {
   const d = Math.sqrt((smx - cx) ** 2 + (smy - cy) ** 2);
   const mouseInf = Math.max(0, 1 - d / 500);
   const audioInf = band ? (audio.bands[band] || 0) : audio.bands.energy;
-  return Math.min(1, Math.max(mouseInf, audioInf));
+  return Math.min(2, mouseInf + audioInf * 1.5);
 }
 
 // --- MAIN LOOP ---
 function animate() {
   audio.update();
-  t += 0.016 * (1 + audio.bands.energy * 0.5);
+  t += 0.016 * (1 + audio.bands.energy * 1.2);
   smx += (mx - smx) * 0.06;
   smy += (my - smy) * 0.06;
 
