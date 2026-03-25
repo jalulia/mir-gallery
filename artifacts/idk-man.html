@@ -194,7 +194,7 @@ for (let i = 0; i < 14; i++) {
     zone: 'path', type, pathIdx, pathT: rng(), speed,
     band, sens: 0.3 + rng() * 0.7, bounce: 0,
     color: ['#1a1a1a','#2850C8','#B81850','#1880D0','#E04520','#1a6a1a'][Math.floor(rng()*6)],
-    size: type==='cyclist'?7:type==='runner'?5:6, dir: rng()>0.5?1:-1,
+    size: type==='cyclist'?8:type==='runner'?7:8, dir: rng()>0.5?1:-1,
     paused: false, pauseUntil: 0
   });
 }
@@ -211,143 +211,243 @@ for (let i = 0; i < 18; i++) {
     zone: 'grass', type, homeX: gx*W, homeY: gy*H, x: gx*W, y: gy*H,
     band, sens: 0.3 + rng() * 0.7, bounce: 0,
     color: type==='goose'?'#f0f0f0':type==='squirrel'?'#8a6a40':['#1a1a1a','#2850C8','#B81850','#c44020','#1a6a1a'][Math.floor(rng()*5)],
-    size: type==='goose'?3.5:type==='squirrel'?2.5:type==='child'?4.5:5.5,
+    size: type==='goose'?4:type==='squirrel'?3:type==='child'?6:7,
     wanderR: type==='frisbee'||type==='child'?60+rng()*40:10+rng()*20,
     wanderSpeed: type==='child'?0.008+rng()*0.01:type==='frisbee'?0.005+rng()*0.005:0.001+rng()*0.003,
     wanderPhase: rng()*Math.PI*2, dir: rng()>0.5?1:-1
   });
 }
 
-// --- DRAW CREATURES ---
+// --- DRAW CREATURES (flat color, bold outline, illustrated style) ---
+const OL = '#2a2a2a'; // outline color
+const SKIN = '#e8c8a0'; // skin tone
+
+// Helper: outlined filled shape
+function fillStroke(color) { X.fillStyle=color; X.fill(); X.strokeStyle=OL; X.lineWidth=1; X.stroke(); }
+
 function drawPerson(x, y, sz, color, phase, running) {
-  const stride = running ? 0.6 : 0.35;
-  const legSwing = Math.sin(phase * (running?6:3)) * sz * stride;
-  X.fillStyle = color; X.strokeStyle = color; X.lineWidth = 1.2;
+  const s = sz * 1.8; // scale up
+  const stride = running ? 0.5 : 0.25;
+  const legSwing = Math.sin(phase * (running?5:2.5)) * s * stride;
+  const armSwing = running ? legSwing * 0.6 : Math.sin(phase * 1.5) * s * 0.1;
+
+  // Shadow
+  X.fillStyle='#00000012'; X.beginPath(); X.ellipse(x, y+2, s*0.4, s*0.1, 0, 0, Math.PI*2); X.fill();
+
+  // Back leg
+  X.beginPath(); X.moveTo(x, y-s*0.35); X.lineTo(x+legSwing, y); X.lineTo(x+legSwing, y+s*0.02);
+  X.strokeStyle=OL; X.lineWidth=s*0.14; X.lineCap='round'; X.stroke();
+  // Shoe
+  X.fillStyle='#3a3a3a'; X.beginPath(); X.ellipse(x+legSwing, y, s*0.08, s*0.04, 0, 0, Math.PI*2); X.fill();
+
+  // Body / torso (filled rounded rect)
+  X.beginPath();
+  X.ellipse(x, y-s*0.55, s*0.2, s*0.25, 0, 0, Math.PI*2);
+  fillStroke(color);
+
+  // Front leg
+  X.beginPath(); X.moveTo(x, y-s*0.35); X.lineTo(x-legSwing, y); X.lineTo(x-legSwing, y+s*0.02);
+  X.strokeStyle=OL; X.lineWidth=s*0.14; X.lineCap='round'; X.stroke();
+  X.fillStyle='#3a3a3a'; X.beginPath(); X.ellipse(x-legSwing, y, s*0.08, s*0.04, 0, 0, Math.PI*2); X.fill();
+
+  // Arms
+  X.strokeStyle=SKIN; X.lineWidth=s*0.08; X.lineCap='round';
+  X.beginPath(); X.moveTo(x-s*0.18, y-s*0.6); X.lineTo(x-s*0.25-armSwing, y-s*0.35); X.stroke();
+  X.beginPath(); X.moveTo(x+s*0.18, y-s*0.6); X.lineTo(x+s*0.25+armSwing, y-s*0.35); X.stroke();
+
   // Head
-  X.beginPath(); X.arc(x, y - sz*1.7, sz*0.35, 0, Math.PI*2); X.fill();
-  // Body
-  X.beginPath(); X.moveTo(x, y-sz*1.35); X.lineTo(x, y-sz*0.1); X.stroke();
-  // Legs
-  X.beginPath(); X.moveTo(x, y-sz*0.1); X.lineTo(x-legSwing, y+sz*0.4); X.stroke();
-  X.beginPath(); X.moveTo(x, y-sz*0.1); X.lineTo(x+legSwing, y+sz*0.4); X.stroke();
-  // Arms (if running, pump)
-  if (running) {
-    X.beginPath(); X.moveTo(x, y-sz); X.lineTo(x+legSwing*0.6, y-sz*0.5); X.stroke();
-    X.beginPath(); X.moveTo(x, y-sz); X.lineTo(x-legSwing*0.6, y-sz*0.5); X.stroke();
-  }
+  X.beginPath(); X.arc(x, y-s*0.85, s*0.15, 0, Math.PI*2); fillStroke(SKIN);
+  // Hair
+  X.fillStyle='#3a2a1a'; X.beginPath(); X.arc(x, y-s*0.9, s*0.14, Math.PI, 0); X.fill();
 }
 
 function drawCyclist(x, y, sz, color, phase) {
-  X.strokeStyle=color;X.lineWidth=0.8;
-  // Wheels
-  X.beginPath();X.arc(x-sz*0.55,y+sz*0.15,sz*0.35,0,Math.PI*2);X.stroke();
-  X.beginPath();X.arc(x+sz*0.55,y+sz*0.15,sz*0.35,0,Math.PI*2);X.stroke();
+  const s = sz * 2;
+  const wheelR = s * 0.22;
+  const pa = phase * 4;
+
+  // Shadow
+  X.fillStyle='#00000010'; X.beginPath(); X.ellipse(x, y+3, s*0.5, s*0.08, 0, 0, Math.PI*2); X.fill();
+
+  // Back wheel
+  X.beginPath(); X.arc(x-s*0.35, y, wheelR, 0, Math.PI*2); X.strokeStyle=OL; X.lineWidth=1.5; X.stroke();
+  X.beginPath(); X.arc(x-s*0.35, y, wheelR*0.15, 0, Math.PI*2); X.fillStyle='#666'; X.fill();
+  // Front wheel
+  X.beginPath(); X.arc(x+s*0.35, y, wheelR, 0, Math.PI*2); X.strokeStyle=OL; X.lineWidth=1.5; X.stroke();
+  X.beginPath(); X.arc(x+s*0.35, y, wheelR*0.15, 0, Math.PI*2); X.fillStyle='#666'; X.fill();
+
   // Frame
-  X.beginPath();X.moveTo(x-sz*0.55,y+sz*0.15);X.lineTo(x-sz*0.1,y-sz*0.3);X.lineTo(x+sz*0.55,y+sz*0.15);X.stroke();
-  X.beginPath();X.moveTo(x-sz*0.1,y-sz*0.3);X.lineTo(x+sz*0.15,y-sz*0.3);X.lineTo(x+sz*0.55,y+sz*0.15);X.stroke();
-  // Rider
-  X.fillStyle=color;X.beginPath();X.arc(x+sz*0.05,y-sz*0.75,sz*0.22,0,Math.PI*2);X.fill();
-  X.beginPath();X.moveTo(x+sz*0.05,y-sz*0.53);X.lineTo(x,y-sz*0.15);X.stroke();
-  // Pedal rotation
-  const pa=phase*5;
-  X.beginPath();X.moveTo(x,y-sz*0.15);X.lineTo(x+Math.cos(pa)*sz*0.2,y-sz*0.15+Math.sin(pa)*sz*0.15);X.stroke();
+  X.strokeStyle='#4a6a4a'; X.lineWidth=2; X.lineCap='round';
+  X.beginPath(); X.moveTo(x-s*0.35, y); X.lineTo(x-s*0.05, y-s*0.25); X.lineTo(x+s*0.15, y-s*0.25); X.lineTo(x+s*0.35, y); X.stroke();
+  X.beginPath(); X.moveTo(x-s*0.05, y-s*0.25); X.lineTo(x, y); X.stroke();
+  // Handlebars
+  X.beginPath(); X.moveTo(x+s*0.12, y-s*0.3); X.lineTo(x+s*0.2, y-s*0.35); X.stroke();
+
+  // Pedal crank
+  X.beginPath(); X.moveTo(x, y); X.lineTo(x+Math.cos(pa)*s*0.1, y+Math.sin(pa)*s*0.08); X.strokeStyle=OL; X.lineWidth=1.5; X.stroke();
+
+  // Rider body
+  X.beginPath(); X.ellipse(x+s*0.05, y-s*0.42, s*0.12, s*0.18, -0.2, 0, Math.PI*2); fillStroke(color);
+  // Rider legs (pedaling)
+  X.strokeStyle=OL; X.lineWidth=s*0.08; X.lineCap='round';
+  X.beginPath(); X.moveTo(x, y-s*0.28); X.lineTo(x+Math.cos(pa)*s*0.1, y+Math.sin(pa)*s*0.08); X.stroke();
+
+  // Head
+  X.beginPath(); X.arc(x+s*0.08, y-s*0.62, s*0.1, 0, Math.PI*2); fillStroke(SKIN);
+  // Helmet
+  X.fillStyle='#e04520'; X.beginPath(); X.arc(x+s*0.08, y-s*0.66, s*0.1, Math.PI, 0); X.fill();
+  X.strokeStyle=OL; X.lineWidth=0.8; X.stroke();
+
+  // Basket on back
+  X.fillStyle='#8a7a5a'; X.globalAlpha=0.6;
+  X.fillRect(x-s*0.2, y-s*0.35, s*0.12, s*0.1);
+  X.strokeStyle=OL; X.lineWidth=0.6; X.strokeRect(x-s*0.2, y-s*0.35, s*0.12, s*0.1);
+  X.globalAlpha=1;
 }
 
 function drawDogWalker(x, y, sz, color, phase) {
+  const s = sz * 1.8;
   drawPerson(x, y, sz, color, phase, false);
+
   // Leash
-  X.strokeStyle=color+'50';X.lineWidth=0.5;
-  const dogX=x+sz*2, dogY=y+sz*0.1;
-  X.beginPath();X.moveTo(x,y-sz*0.5);X.quadraticCurveTo(x+sz,y+sz*0.4,dogX,dogY);X.stroke();
+  const dogX = x + s*1.2, dogY = y - s*0.05;
+  X.strokeStyle='#5a4a3a'; X.lineWidth=1; X.lineCap='round';
+  X.beginPath(); X.moveTo(x+s*0.15, y-s*0.4); X.quadraticCurveTo(x+s*0.6, y+s*0.15, dogX, dogY-s*0.1); X.stroke();
+
   // Dog body
-  X.fillStyle='#6a5a4a';X.globalAlpha=0.5;
-  X.fillRect(dogX-sz*0.35,dogY-sz*0.15,sz*0.5,sz*0.25);
+  X.beginPath(); X.ellipse(dogX, dogY, s*0.25, s*0.12, 0, 0, Math.PI*2); fillStroke('#c8a060');
   // Dog head
-  X.beginPath();X.arc(dogX+sz*0.2,dogY-sz*0.1,sz*0.12,0,Math.PI*2);X.fill();
+  X.beginPath(); X.arc(dogX+s*0.2, dogY-s*0.08, s*0.08, 0, Math.PI*2); fillStroke('#c8a060');
+  // Dog ear
+  X.fillStyle='#a08040'; X.beginPath(); X.ellipse(dogX+s*0.18, dogY-s*0.14, s*0.04, s*0.06, 0.3, 0, Math.PI*2); X.fill();
   // Tail
-  const tailWag=Math.sin(phase*8)*sz*0.15;
-  X.strokeStyle='#6a5a4a';X.lineWidth=0.8;X.globalAlpha=0.4;
-  X.beginPath();X.moveTo(dogX-sz*0.35,dogY-sz*0.05);X.lineTo(dogX-sz*0.5,dogY-sz*0.25+tailWag);X.stroke();
-  X.globalAlpha=1;
+  const tailWag = Math.sin(phase*8) * s*0.08;
+  X.strokeStyle='#c8a060'; X.lineWidth=2; X.lineCap='round';
+  X.beginPath(); X.moveTo(dogX-s*0.22, dogY-s*0.02); X.quadraticCurveTo(dogX-s*0.32, dogY-s*0.18+tailWag, dogX-s*0.25, dogY-s*0.25+tailWag); X.stroke();
+  // Dog legs
+  X.strokeStyle=OL; X.lineWidth=1.5;
+  X.beginPath(); X.moveTo(dogX-s*0.12, dogY+s*0.1); X.lineTo(dogX-s*0.12, dogY+s*0.2); X.stroke();
+  X.beginPath(); X.moveTo(dogX+s*0.12, dogY+s*0.1); X.lineTo(dogX+s*0.12, dogY+s*0.2); X.stroke();
 }
 
 function drawGoose(x, y, sz, phase) {
-  X.fillStyle='#e8e8e8';X.globalAlpha=0.7;
-  X.beginPath();X.ellipse(x,y,sz*0.8,sz*0.4,0,0,Math.PI*2);X.fill();
+  const s = sz * 2.5;
+  // Shadow
+  X.fillStyle='#00000008'; X.beginPath(); X.ellipse(x, y+2, s*0.25, s*0.06, 0, 0, Math.PI*2); X.fill();
+  // Body
+  X.beginPath(); X.ellipse(x, y-s*0.05, s*0.2, s*0.12, 0, 0, Math.PI*2); fillStroke('#f0ede5');
   // Neck
-  X.strokeStyle='#e0e0e0';X.lineWidth=1.2;X.globalAlpha=0.6;
-  X.beginPath();X.moveTo(x+sz*0.5,y-sz*0.1);X.quadraticCurveTo(x+sz*0.7,y-sz*0.8,x+sz*0.6,y-sz*1);X.stroke();
+  X.strokeStyle='#f0ede5'; X.lineWidth=s*0.06; X.lineCap='round';
+  X.beginPath(); X.moveTo(x+s*0.15, y-s*0.12); X.quadraticCurveTo(x+s*0.22, y-s*0.3, x+s*0.18, y-s*0.4); X.stroke();
+  X.strokeStyle=OL; X.lineWidth=1; X.stroke();
   // Head
-  X.fillStyle='#1a1a1a';X.globalAlpha=0.5;
-  X.beginPath();X.arc(x+sz*0.6,y-sz*1,sz*0.12,0,Math.PI*2);X.fill();
+  X.beginPath(); X.arc(x+s*0.18, y-s*0.42, s*0.05, 0, Math.PI*2); fillStroke('#1a1a1a');
   // Beak
-  X.fillStyle='#c88020';X.globalAlpha=0.5;
-  X.beginPath();X.moveTo(x+sz*0.72,y-sz*1);X.lineTo(x+sz*0.9,y-sz*0.95);X.lineTo(x+sz*0.72,y-sz*0.9);X.fill();
-  X.globalAlpha=1;
+  X.fillStyle='#d4922a'; X.beginPath(); X.moveTo(x+s*0.23, y-s*0.43); X.lineTo(x+s*0.3, y-s*0.41); X.lineTo(x+s*0.23, y-s*0.39); X.closePath(); X.fill();
+  // Feet
+  X.fillStyle='#d4922a';
+  X.beginPath(); X.moveTo(x-s*0.08, y+s*0.06); X.lineTo(x-s*0.14, y+s*0.1); X.lineTo(x-s*0.04, y+s*0.1); X.fill();
+  X.beginPath(); X.moveTo(x+s*0.08, y+s*0.06); X.lineTo(x+s*0.02, y+s*0.1); X.lineTo(x+s*0.12, y+s*0.1); X.fill();
 }
 
 function drawSquirrel(x, y, sz, phase) {
-  X.fillStyle='#8a6a40';X.globalAlpha=0.5;
-  X.beginPath();X.ellipse(x,y,sz*0.5,sz*0.35,0,0,Math.PI*2);X.fill();
+  const s = sz * 3;
+  // Body
+  X.beginPath(); X.ellipse(x, y, s*0.1, s*0.07, 0, 0, Math.PI*2); fillStroke('#8a6a40');
   // Head
-  X.beginPath();X.arc(x+sz*0.4,y-sz*0.15,sz*0.2,0,Math.PI*2);X.fill();
-  // Tail (curled up)
-  X.strokeStyle='#8a6a40';X.lineWidth=1.5;X.globalAlpha=0.4;
-  const tw=Math.sin(phase*4)*sz*0.1;
-  X.beginPath();X.moveTo(x-sz*0.4,y);X.quadraticCurveTo(x-sz*0.7,y-sz*0.8+tw,x-sz*0.3,y-sz*0.9);X.stroke();
-  X.globalAlpha=1;
+  X.beginPath(); X.arc(x+s*0.1, y-s*0.05, s*0.05, 0, Math.PI*2); fillStroke('#8a6a40');
+  // Eye
+  X.fillStyle='#1a1a1a'; X.beginPath(); X.arc(x+s*0.12, y-s*0.06, s*0.012, 0, Math.PI*2); X.fill();
+  // Fluffy tail
+  const tw = Math.sin(phase*3) * s*0.02;
+  X.beginPath(); X.moveTo(x-s*0.08, y+s*0.01);
+  X.quadraticCurveTo(x-s*0.15, y-s*0.1+tw, x-s*0.08, y-s*0.15);
+  X.quadraticCurveTo(x-s*0.02, y-s*0.12+tw, x-s*0.05, y-s*0.02);
+  fillStroke('#a07a48');
 }
 
 function drawLounger(x, y, sz, color) {
-  // Lying down person — blanket + body
-  X.fillStyle='#c8b8a0';X.globalAlpha=0.08;
-  X.fillRect(x-sz*1.5,y-sz*0.5,sz*3,sz*1.5);X.globalAlpha=1;
-  // Body (horizontal)
-  X.strokeStyle=color;X.lineWidth=1.2;
-  X.beginPath();X.moveTo(x-sz,y);X.lineTo(x+sz*0.5,y);X.stroke();
-  // Head
-  X.fillStyle=color;X.beginPath();X.arc(x-sz*1.1,y,sz*0.3,0,Math.PI*2);X.fill();
+  const s = sz * 2;
+  // Blanket
+  X.beginPath();
+  X.moveTo(x-s*0.6, y-s*0.2); X.lineTo(x+s*0.6, y-s*0.2);
+  X.lineTo(x+s*0.55, y+s*0.2); X.lineTo(x-s*0.55, y+s*0.2); X.closePath();
+  fillStroke('#c8483828');
+  X.fillStyle='#c84838'; X.globalAlpha=0.2; X.fill(); X.globalAlpha=1;
+
+  // Body lying down
+  X.beginPath(); X.ellipse(x, y-s*0.05, s*0.35, s*0.1, 0, 0, Math.PI*2); fillStroke(color);
+  // Head with hat
+  X.beginPath(); X.arc(x-s*0.35, y-s*0.05, s*0.1, 0, Math.PI*2); fillStroke(SKIN);
+  // Sun hat
+  X.fillStyle='#e8d8a0'; X.beginPath(); X.ellipse(x-s*0.35, y-s*0.12, s*0.14, s*0.04, 0, 0, Math.PI*2); X.fill();
+  X.beginPath(); X.arc(x-s*0.35, y-s*0.14, s*0.08, Math.PI, 0); X.fill();
+  X.strokeStyle=OL; X.lineWidth=0.6; X.stroke();
+  // Book
+  X.fillStyle='#e8e0d0'; X.fillRect(x+s*0.1, y-s*0.12, s*0.08, s*0.1);
+  X.strokeStyle=OL; X.lineWidth=0.5; X.strokeRect(x+s*0.1, y-s*0.12, s*0.08, s*0.1);
 }
 
 function drawPicnic(x, y, sz, color) {
-  // Blanket
-  X.fillStyle='#c44020';X.globalAlpha=0.08;
-  X.beginPath();X.ellipse(x,y,sz*2,sz*1.2,0.1,0,Math.PI*2);X.fill();X.globalAlpha=1;
-  // Two sitting people
-  X.fillStyle=color;
-  X.beginPath();X.arc(x-sz*0.5,y-sz*0.8,sz*0.3,0,Math.PI*2);X.fill();
-  X.strokeStyle=color;X.lineWidth=1;
-  X.beginPath();X.moveTo(x-sz*0.5,y-sz*0.5);X.lineTo(x-sz*0.5,y+sz*0.1);X.stroke();
-  X.fillStyle='#2850C8';
-  X.beginPath();X.arc(x+sz*0.6,y-sz*0.7,sz*0.28,0,Math.PI*2);X.fill();
-  X.strokeStyle='#2850C8';
-  X.beginPath();X.moveTo(x+sz*0.6,y-sz*0.42);X.lineTo(x+sz*0.6,y+sz*0.15);X.stroke();
+  const s = sz * 2;
+  // Blanket (checkered feel)
+  X.fillStyle='#c84838'; X.globalAlpha=0.25;
+  X.beginPath(); X.ellipse(x, y, s*0.5, s*0.3, 0.05, 0, Math.PI*2); X.fill();
+  X.globalAlpha=1;
+  X.strokeStyle=OL; X.lineWidth=0.6;
+  X.beginPath(); X.ellipse(x, y, s*0.5, s*0.3, 0.05, 0, Math.PI*2); X.stroke();
+
+  // Person 1 sitting
+  X.beginPath(); X.ellipse(x-s*0.15, y-s*0.08, s*0.1, s*0.12, 0, 0, Math.PI*2); fillStroke(color);
+  X.beginPath(); X.arc(x-s*0.15, y-s*0.22, s*0.07, 0, Math.PI*2); fillStroke(SKIN);
+  // Person 2
+  X.beginPath(); X.ellipse(x+s*0.18, y-s*0.05, s*0.09, s*0.11, 0, 0, Math.PI*2); fillStroke('#2850C8');
+  X.beginPath(); X.arc(x+s*0.18, y-s*0.18, s*0.065, 0, Math.PI*2); fillStroke(SKIN);
+
   // Basket
-  X.fillStyle='#8a6a40';X.globalAlpha=0.3;
-  X.fillRect(x-sz*0.2,y-sz*0.1,sz*0.5,sz*0.3);X.globalAlpha=1;
+  X.beginPath();
+  X.moveTo(x-s*0.05, y+s*0.05); X.lineTo(x+s*0.08, y+s*0.05);
+  X.lineTo(x+s*0.06, y+s*0.15); X.lineTo(x-s*0.03, y+s*0.15); X.closePath();
+  fillStroke('#8a6a40');
+  // Basket handle
+  X.strokeStyle='#6a5030'; X.lineWidth=1; X.beginPath();
+  X.arc(x+s*0.015, y+s*0.02, s*0.05, Math.PI, 0); X.stroke();
 }
 
 function drawFrisbeePlayer(x, y, sz, color, phase) {
   drawPerson(x, y, sz, color, phase, true);
-  // Frisbee disc (orbiting)
-  const fa = phase * 2;
-  const fx = x + Math.cos(fa) * sz * 2.5;
-  const fy = y - sz * 1.5 + Math.sin(fa) * sz;
-  X.fillStyle='#2850C8';X.globalAlpha=0.4;
-  X.beginPath();X.ellipse(fx,fy,sz*0.4,sz*0.12,fa,0,Math.PI*2);X.fill();
-  X.globalAlpha=1;
+  const s = sz * 1.8;
+  // Frisbee
+  const fa = phase * 2.5;
+  const fx = x + Math.cos(fa) * s * 1.2;
+  const fy = y - s * 0.8 + Math.sin(fa) * s * 0.4;
+  X.beginPath(); X.ellipse(fx, fy, s*0.15, s*0.05, fa, 0, Math.PI*2); fillStroke('#2850C8');
 }
 
 function drawChild(x, y, sz, color, phase) {
-  const legSwing = Math.sin(phase * 8) * sz * 0.5;
-  X.fillStyle = color; X.strokeStyle = color; X.lineWidth = 1;
-  X.beginPath(); X.arc(x, y-sz*1.3, sz*0.35, 0, Math.PI*2); X.fill();
-  X.beginPath(); X.moveTo(x, y-sz*0.95); X.lineTo(x, y); X.stroke();
-  X.beginPath(); X.moveTo(x, y); X.lineTo(x-legSwing, y+sz*0.35); X.stroke();
-  X.beginPath(); X.moveTo(x, y); X.lineTo(x+legSwing, y+sz*0.35); X.stroke();
-  // Arms out
-  X.beginPath();X.moveTo(x,y-sz*0.6);X.lineTo(x-sz*0.5-Math.abs(legSwing)*0.3,y-sz*0.3);X.stroke();
-  X.beginPath();X.moveTo(x,y-sz*0.6);X.lineTo(x+sz*0.5+Math.abs(legSwing)*0.3,y-sz*0.3);X.stroke();
+  const s = sz * 1.5;
+  const legSwing = Math.sin(phase * 7) * s * 0.4;
+
+  // Shadow
+  X.fillStyle='#00000010'; X.beginPath(); X.ellipse(x, y+2, s*0.25, s*0.06, 0, 0, Math.PI*2); X.fill();
+
+  // Legs
+  X.strokeStyle=OL; X.lineWidth=s*0.12; X.lineCap='round';
+  X.beginPath(); X.moveTo(x, y-s*0.2); X.lineTo(x-legSwing, y+s*0.1); X.stroke();
+  X.beginPath(); X.moveTo(x, y-s*0.2); X.lineTo(x+legSwing, y+s*0.1); X.stroke();
+
+  // Body
+  X.beginPath(); X.ellipse(x, y-s*0.4, s*0.15, s*0.2, 0, 0, Math.PI*2); fillStroke(color);
+
+  // Arms out wide (running kid energy)
+  X.strokeStyle=SKIN; X.lineWidth=s*0.07; X.lineCap='round';
+  X.beginPath(); X.moveTo(x-s*0.12, y-s*0.45); X.lineTo(x-s*0.35-Math.abs(legSwing)*0.3, y-s*0.25); X.stroke();
+  X.beginPath(); X.moveTo(x+s*0.12, y-s*0.45); X.lineTo(x+s*0.35+Math.abs(legSwing)*0.3, y-s*0.25); X.stroke();
+
+  // Head
+  X.beginPath(); X.arc(x, y-s*0.65, s*0.12, 0, Math.PI*2); fillStroke(SKIN);
+  // Hair
+  X.fillStyle='#5a3a1a'; X.beginPath(); X.arc(x, y-s*0.7, s*0.11, Math.PI*1.1, -0.1); X.fill();
 }
 
 // --- UPDATE & DRAW ALL ---
