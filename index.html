@@ -779,6 +779,56 @@ body.light .docs-content code { background: #00000008; color: var(--mid-gray); }
 body.light .docs-close { color: #00000040; }
 body.light .docs-close:hover { color: #000; }
 
+/* ─── Generate with Claude ─── */
+.ws-btn-generate {
+  background: rgba(61,109,244,0.12); border: 1px solid rgba(61,109,244,0.3);
+  color: #3D6DF4; font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.04em; padding: 10px 20px; border-radius: 4px;
+  cursor: pointer; transition: all 0.2s; text-align: center; width: 100%;
+}
+.ws-btn-generate:hover { background: rgba(61,109,244,0.22); }
+.ws-btn-generate.loading { opacity: 0.5; pointer-events: none; }
+.gen-progress-bar {
+  height: 2px; background: rgba(255,255,255,0.06);
+  border-radius: 1px; margin-top: 8px; overflow: hidden; display: none;
+}
+#gen-progress-fill {
+  height: 100%; width: 0%; background: #3D6DF4;
+  border-radius: 1px; transition: width 0.4s;
+}
+.ws-textarea {
+  width: 100%; min-height: 80px; resize: vertical;
+  background: var(--charcoal); border: 1px solid #ffffff0a;
+  color: var(--off-white); font-family: var(--font-body);
+  font-size: 13px; padding: 10px 14px; border-radius: 4px;
+  outline: none; transition: border-color 0.2s; margin-bottom: 8px;
+}
+.ws-textarea::placeholder { color: #ffffff20; }
+.ws-textarea:focus { border-color: var(--eh); }
+.ws-status {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--light-gray); letter-spacing: 0.04em;
+  min-height: 16px; margin-top: 6px;
+}
+.ws-status.error { color: var(--se); }
+.ws-status.success { color: #4CD47C; }
+.ws-section { display: flex; flex-direction: column; gap: 8px; }
+.ws-label {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 13px; color: #fff; letter-spacing: 0.02em;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.download-btn {
+  position: absolute; top: 6px; left: 6px; z-index: 5;
+  background: none; border: 1px solid #ffffff12; border-radius: 3px;
+  color: #ffffff30; font-size: 8px; padding: 2px 6px;
+  cursor: pointer; font-family: var(--font-mono); display: none;
+}
+.artifact-card:hover .download-btn { display: block; }
+.download-btn:hover { border-color: var(--eh); color: var(--eh); }
+#api-key-btn { font-size: 9px; padding: 4px 10px; opacity: 0.5; }
+#api-key-btn.has-key { opacity: 0.8; color: #4CD47C; border-color: #4CD47C40; }
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .header, .tabs, .toolbar, .gallery-container { padding-left: 24px; padding-right: 24px; }
@@ -943,6 +993,7 @@ body.light .docs-close:hover { color: #000; }
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
       <span id="session-selector"></span>
       <button class="ws-btn-secondary" onclick="saveWorkspaceSession()" style="font-size:9px;padding:4px 10px;">Save Session</button>
+      <button class="ws-btn-secondary" id="api-key-btn" onclick="promptApiKey()">api key</button>
     </div>
   </div>
   <div class="workspace-filmstrip" id="workspace-filmstrip"></div>
@@ -957,7 +1008,7 @@ body.light .docs-close:hover { color: #000; }
           <button class="ws-btn-primary" onclick="copyClaudeBrief()">⎘ Copy for Claude</button>
         </div>
       </div>
-      <div>
+      <div class="ws-section">
         <div class="workspace-panel-title">Register Artifact</div>
         <input class="workspace-input" id="artifact-title" type="text" placeholder="Title">
         <textarea class="workspace-input" id="artifact-desc" placeholder="Description" rows="2"></textarea>
@@ -972,13 +1023,20 @@ body.light .docs-close:hover { color: #000; }
         <div class="workspace-actions">
           <button class="ws-btn-primary" onclick="registerArtifact()">Register Artifact</button>
         </div>
+        <div id="register-status" class="ws-status"></div>
+      </div>
+      <div class="ws-section" id="generate-section">
+        <div class="workspace-panel-title">Generate with Claude</div>
+        <textarea id="gen-brief" class="ws-textarea" placeholder="Describe what you want to build…" rows="4"></textarea>
+        <div style="display:flex;gap:8px;">
+          <input id="gen-title" class="workspace-input" type="text" placeholder="Title" style="flex:1;">
+          <input id="gen-tags" class="workspace-input" type="text" placeholder="Tags" style="flex:1;">
+        </div>
+        <button class="ws-btn-generate" id="gen-btn" onclick="generateArtifact()">generate</button>
+        <div id="gen-status" class="ws-status"></div>
+        <div class="gen-progress-bar" id="gen-progress"><div id="gen-progress-fill"></div></div>
       </div>
     </div>
-  </div>
-  <div class="workspace-output" id="workspace-output" style="display:none;">
-    <p>Copy this into your ARTIFACTS array:</p>
-    <pre id="artifact-code-output"></pre>
-    <button class="ws-btn-secondary" onclick="copyArtifactCode()" style="margin-top:12px;">⎘ Copy to clipboard</button>
   </div>
 </div>
 
@@ -1140,8 +1198,9 @@ const ARTIFACTS = [
   { file: "artifacts/game-test.html", title: "Game test", desc: "Generative topology — orbital trajectory arcs, gradient spheres, central starburst, schematic annotations, traveling particles on dark field.", tags: ["color", "waveform", "generative", "topology"], status: "draft", date: "2026-03-25", refs: ["references/3782e13cadab7d9d8af897d543e7ff8c.jpg", "references/2e0e8ce22b51ab797100e58d6ae0da6c.jpg"] },
   { file: "artifacts/helix-strands.html", title: "HELIX Strands", desc: "Three-view HELIX strand visualization — Strand Garden (particle physics), Triple Helix Tower (scrollable ribbons), Breathing Ring (concentric noise-deformed rings). Two datasets: Exosomatic Cortex (410 strands) and Triadic Septadic (64 strands). Terminal HUD with coset frequency readouts.", tags: ["terminal", "waveform", "dataviz", "color"], status: "draft", date: "2026-03-25", refs: ["references/099dfa3bdd4c86f62dab8750f2f761b8.jpg", "references/4f64d2cab4066b0632692e16619bc980.jpg", "references/59750d64764c687898babf6ab6185048.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
   { file: "artifacts/mir-756.html", title: "Mir 756", desc: "756-strand memory portrait — double helix encoding identity zones (Chris / interleaved / nullcode / Julia), void gaps, and drift events as seismic amplitude distortions.", tags: ["generative", "topology", "grid", "color"], status: "draft", date: "2026-03-25", refs: ["references/8f2586f173052165633b9cedc8fc30ae.jpg", "references/d5de78d777e7447a9f23df828a6ec763.jpg", "references/83e642cc81f190e95d165c55d4a112ec.jpg", "references/b1b61e52f8e2f73958b7c0e71c602498.jpg", "references/videoframe_7815.png", "references/59750d64764c687898babf6ab6185048.gif", "references/c0d45667dbe1e44d7e266233f8d7eaa9.gif", "references/b3ab75b13cc8fdc86e3078dfef6db79d.gif", "references/8b399bddeeb5698f8cfcf6a1db92d6f3.jpg"] },
-  { file: "artifacts/ping-pong.html", title: "Ping Pong", desc: "Two-player ping pong — W/S vs ↑/↓, score to 7. Sparks on paddle hit, ball accelerates with each rally.", tags: ["network", "dataviz", "particles", "topology"], status: "draft", date: "2026-03-25", refs: ["references/2448c9e0d6e740cc84272718ad4f9616.jpg", "references/2e0e8ce22b51ab797100e58d6ae0da6c.jpg"] },
   { file: "artifacts/helix-strands-v2.html", title: "HELIX Strands v2", desc: "Unified spiral HELIX visualization — interactive Archimedean spiral with coset coloring, brightness by local balance deviation, chapter boundaries, hover/click strand inspection, scrubber timeline, network overlay (Z₃ adjacency), drift overlay (σ_B particles). Two datasets.", tags: ["terminal", "waveform", "dataviz", "color"], status: "wip", date: "2026-03-25", refs: ["references/099dfa3bdd4c86f62dab8750f2f761b8.jpg", "references/4f64d2cab4066b0632692e16619bc980.jpg", "references/59750d64764c687898babf6ab6185048.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
+  { file: "artifacts/helix-wave.html", title: "Helix Wave — 780", desc: "780-strand memory portrait on a rolling helix axis. Four zones (Chris, Interleaved, Nullcodes, Recent), 11 void dithering points, 52 seismic drift events. Canvas 2D viewports: seismic drift timeline, nullcode lissajous knot, zone density heatmap. Hover to inspect individual strands.", tags: ["topology", "generative", "waveform", "color", "dataviz", "terminal"], status: "wip", date: "2026-03-25", refs: ["references/8f2586f173052165633b9cedc8fc30ae.jpg", "references/560fc351465da1eae441080890059006.gif", "references/4f64d2cab4066b0632692e16619bc980.jpg"] },
+  { file: "artifacts/mir-780.html", title: "Mir 780", desc: "Three.js double helix — 780 spheres color-coded by type (user/assistant/exchange/summary/void/nullcode). Drift displacement pushes high-drift strands outward. Pulsing void/nullcode emissive. Orbit controls, hover panel, seismic timeline overlay.", tags: ["topology", "generative", "color", "dataviz", "terminal"], status: "wip", date: "2026-03-25", refs: ["references/8f2586f173052165633b9cedc8fc30ae.jpg", "references/560fc351465da1eae441080890059006.gif", "references/4f64d2cab4066b0632692e16619bc980.jpg"] },
 ];
 
 // ─── STATE ───
@@ -1156,7 +1215,21 @@ let localArtifacts = JSON.parse(localStorage.getItem('mir-local-artifacts') || '
 
 function getAllArtifacts() { return [...ARTIFACTS, ...localArtifacts]; }
 function saveSelection() { localStorage.setItem('mir-selected-refs', JSON.stringify([...selectedRefs])); }
-function saveLocalArtifacts() { localStorage.setItem('mir-local-artifacts', JSON.stringify(localArtifacts)); }
+function saveLocalArtifacts() {
+  const toSave = localArtifacts.map(a =>
+    (a.generated && a.slug) ? { ...a, file: `generated:${a.slug}` } : a
+  );
+  localStorage.setItem('mir-local-artifacts', JSON.stringify(toSave));
+}
+function restoreGeneratedBlobUrls() {
+  localArtifacts = localArtifacts.map(a => {
+    if (!a.generated || !a.slug) return a;
+    const html = localStorage.getItem(`mir-generated-html-${a.slug}`);
+    if (!html) return a;
+    const blob = new Blob([html], { type: 'text/html' });
+    return { ...a, file: URL.createObjectURL(blob) };
+  });
+}
 
 function getLinkedArtifacts(refFile) {
   return getAllArtifacts().filter(a => (a.refs || []).includes(refFile));
@@ -1242,9 +1315,12 @@ function renderArtifacts() {
   grid.innerHTML = filtered.map(a => {
     const refs = (a.refs || []).slice(0, 4);
     const overflow = (a.refs || []).length - 4;
+    const safeFile = a.file.replace(/'/g, "\\'");
+    const safeTitle = a.title.replace(/'/g, "\\'");
     return `
-    <div class="artifact-card" onclick="openArtifact('${a.file}', '${a.title.replace(/'/g, "\\'")}')">
-      <button class="archive-btn" onclick="event.stopPropagation(); archiveArtifact('${a.file}')" title="Archive">✕</button>
+    <div class="artifact-card" onclick="openArtifact('${safeFile}', '${safeTitle}')">
+      <button class="archive-btn" onclick="event.stopPropagation(); archiveArtifact('${safeFile}')" title="Archive">✕</button>
+      ${a.generated && a.slug ? `<button class="download-btn" onclick="event.stopPropagation(); downloadGeneratedArtifact('${a.slug}')" title="Download HTML">↓</button>` : ''}
       <div class="artifact-preview">
         <iframe src="${a.file}" class="artifact-thumb-frame" loading="lazy" sandbox="allow-scripts" tabindex="-1"></iframe>
         <div class="artifact-preview-overlay"></div>
@@ -1559,7 +1635,7 @@ function copyClaudeBrief() {
 // ─── REGISTER ARTIFACT ───
 function registerArtifact() {
   const title = document.getElementById('artifact-title').value.trim();
-  if (!title) { alert('Title is required.'); return; }
+  if (!title) { showRegisterStatus('title is required', true); return; }
 
   // Auto-populate description from notes if empty
   let descEl = document.getElementById('artifact-desc');
@@ -1580,7 +1656,7 @@ function registerArtifact() {
   const artifact = {
     file: document.getElementById('artifact-file').value.trim() || `artifacts/${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html`,
     title: title,
-    desc: document.getElementById('artifact-desc').value.trim(),
+    desc: descEl.value.trim(),
     tags: suggestedTags,
     status: document.getElementById('artifact-status').value,
     date: new Date().toISOString().split('T')[0],
@@ -1589,25 +1665,16 @@ function registerArtifact() {
 
   localArtifacts.push(artifact);
   saveLocalArtifacts();
-
-  // Show code output
-  const code = JSON.stringify(artifact, null, 2)
-    .replace(/"(\w+)":/g, '$1:')
-    .replace(/"/g, '"');
-  document.getElementById('artifact-code-output').textContent = code;
-  document.getElementById('workspace-output').style.display = '';
-
   render();
+  showRegisterStatus(`registered: ${title}`);
 }
 
-function copyArtifactCode() {
-  const code = document.getElementById('artifact-code-output').textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = document.querySelector('[onclick="copyArtifactCode()"]');
-    const orig = btn.textContent;
-    btn.textContent = '✓ copied';
-    setTimeout(() => { btn.textContent = orig; }, 1500);
-  });
+function showRegisterStatus(msg, isError) {
+  const el = document.getElementById('register-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'ws-status ' + (isError ? 'error' : 'success');
+  setTimeout(() => { el.textContent = ''; el.className = 'ws-status'; }, 3000);
 }
 
 // ─── WORKSPACE SESSIONS ───
@@ -1744,8 +1811,224 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ─── CLAUDE API ───
+function getApiKey() { return localStorage.getItem('mir-claude-key') || ''; }
+function saveApiKey(k) { localStorage.setItem('mir-claude-key', k); }
+function promptApiKey() {
+  const cur = getApiKey();
+  const k = prompt('Anthropic API key:', cur ? '••••' + cur.slice(-4) : '');
+  if (k !== null && k !== '••••' + cur.slice(-4) && k.trim()) {
+    saveApiKey(k.trim());
+    updateApiKeyBtn();
+    showRegisterStatus('api key saved');
+  }
+}
+function updateApiKeyBtn() {
+  const btn = document.getElementById('api-key-btn');
+  if (!btn) return;
+  if (getApiKey()) {
+    btn.textContent = 'api key ✓';
+    btn.classList.add('has-key');
+  } else {
+    btn.textContent = 'api key';
+    btn.classList.remove('has-key');
+  }
+}
+
+function buildGeneratePrompt(brief) {
+  return `You are building a single-file HTML artifact for the Mir Gallery — a generative art and data visualization gallery.
+
+Style guide:
+- Dark background (#0A0A0A)
+- Lekton monospace font (from Google Fonts: https://fonts.googleapis.com/css2?family=Lekton:wght@400;700&display=swap)
+- IO Brand Kit colors: SE=#F46138 (warm), EH=#3D6DF4 (blue), PW=#CE2867 (pink), SP=#2C9FF4 (sky)
+- Canvas 2D API preferred for animation/generative work
+- CRT scanlines via repeating-linear-gradient optional
+- No external dependencies except Google Fonts Lekton
+
+Output ONLY the complete HTML document — no markdown, no explanation, no code fences. Start directly with <!DOCTYPE html>.
+
+Brief: ${brief}`;
+}
+
+function extractHtml(text) {
+  let html = text.trim();
+  // Strip markdown code fences if present at start
+  html = html.replace(/^```html\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  if (html.match(/^<!DOCTYPE|^<html/i)) return html;
+  // Fallback: search for a code block containing html
+  const fenceMatch = text.match(/```html\s*([\s\S]*?)```/i);
+  if (fenceMatch) {
+    const inner = fenceMatch[1].trim();
+    if (inner.match(/^<!DOCTYPE|^<html/i)) return inner;
+  }
+  // Fallback: find <!DOCTYPE or <html in the text
+  const idx = text.search(/<!DOCTYPE html|<html/i);
+  if (idx !== -1) return text.slice(idx).trim();
+  return null;
+}
+
+async function collectRefImages() {
+  const images = [];
+  for (const file of [...selectedRefs]) {
+    try {
+      const resp = await fetch(file);
+      if (!resp.ok) continue;
+      const blob = await resp.blob();
+      const data = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(',')[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
+      const mediaType = blob.type || 'image/jpeg';
+      images.push({ type: mediaType, data });
+    } catch(e) { /* skip */ }
+  }
+  return images;
+}
+
+function setGenState(state, msg) {
+  const btn = document.getElementById('gen-btn');
+  const status = document.getElementById('gen-status');
+  const progress = document.getElementById('gen-progress');
+  const fill = document.getElementById('gen-progress-fill');
+  if (state === 'loading') {
+    btn.classList.add('loading');
+    status.textContent = 'generating…';
+    status.className = 'ws-status';
+    progress.style.display = '';
+    // animate progress bar
+    let w = 0;
+    fill.style.width = '0%';
+    fill._interval = setInterval(() => {
+      w = Math.min(w + (w < 60 ? 2 : 0.3), 90);
+      fill.style.width = w + '%';
+    }, 300);
+  } else {
+    clearInterval(fill._interval);
+    btn.classList.remove('loading');
+    if (state === 'done') {
+      fill.style.width = '100%';
+      status.textContent = msg || 'done';
+      status.className = 'ws-status success';
+      setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 800);
+    } else {
+      progress.style.display = 'none';
+      fill.style.width = '0%';
+      status.textContent = msg || 'error';
+      status.className = 'ws-status error';
+    }
+  }
+}
+
+async function generateArtifact() {
+  const key = getApiKey();
+  if (!key) { promptApiKey(); return; }
+
+  const brief = document.getElementById('gen-brief').value.trim();
+  if (!brief) { setGenState('error', 'add a brief first'); return; }
+
+  const title = document.getElementById('gen-title').value.trim() || 'generated artifact';
+  const tags = document.getElementById('gen-tags').value.trim();
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+
+  setGenState('loading');
+
+  const content = [{ type: 'text', text: buildGeneratePrompt(brief) }];
+  try {
+    const refImgs = await collectRefImages();
+    refImgs.forEach(img => content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: img.type, data: img.data }
+    }));
+  } catch(e) { /* proceed without images */ }
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 8192,
+        messages: [{ role: 'user', content }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      const msg = resp.status === 401 ? 'invalid api key'
+                : resp.status === 429 ? 'rate limited — try again'
+                : (err.error && err.error.message) || `error ${resp.status}`;
+      setGenState('error', msg);
+      return;
+    }
+
+    const data = await resp.json();
+    const rawText = data.content && data.content[0] && data.content[0].text;
+    if (!rawText) { setGenState('error', 'empty response'); return; }
+    const html = extractHtml(rawText);
+    if (!html) { setGenState('error', 'no html in response'); return; }
+
+    autoRegisterGeneratedArtifact(html, slug, title, tags);
+    setGenState('done', `registered: ${title}`);
+  } catch (e) {
+    setGenState('error', e.message || 'network error');
+  }
+}
+
+function autoRegisterGeneratedArtifact(html, slug, title, tags) {
+  try {
+    localStorage.setItem(`mir-generated-html-${slug}`, html);
+  } catch(e) {
+    setGenState('error', 'storage full — download the artifact instead');
+    downloadHtmlDirect(html, slug);
+    return;
+  }
+  const blob = new Blob([html], { type: 'text/html' });
+  const blobUrl = URL.createObjectURL(blob);
+  const tagArr = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const artifact = {
+    file: blobUrl,
+    title,
+    desc: 'Generated with Claude',
+    tags: tagArr,
+    status: 'draft',
+    date: new Date().toISOString().split('T')[0],
+    refs: [...selectedRefs],
+    generated: true,
+    slug,
+    local: true,
+    added: Date.now()
+  };
+  localArtifacts.push(artifact);
+  saveLocalArtifacts();
+  render();
+  openArtifact(blobUrl, title);
+}
+
+function downloadGeneratedArtifact(slug) {
+  const html = localStorage.getItem(`mir-generated-html-${slug}`);
+  if (!html) return;
+  downloadHtmlDirect(html, slug);
+}
+
+function downloadHtmlDirect(html, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  a.download = `${name}.html`;
+  a.click();
+}
+
 // ─── INIT ───
 window.addEventListener('hashchange', handleRoute);
+restoreGeneratedBlobUrls();
+updateApiKeyBtn();
 handleRoute();
 </script>
 </body>

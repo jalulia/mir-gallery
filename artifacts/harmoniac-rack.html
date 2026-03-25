@@ -50,7 +50,7 @@ const NODE_TYPES = [
   { name:'HPF', color:'#40a080', desc:'high pass', create:()=>{const f=getAudio().createBiquadFilter();f.type='highpass';f.frequency.value=400;f.Q.value=3;return{node:f,freq:f.frequency,q:f.Q};} },
   { name:'DELAY', color:'#b08020', desc:'echo', create:()=>{const ctx=getAudio();const d=ctx.createDelay(1);d.delayTime.value=0.3;const g=ctx.createGain();g.gain.value=0.4;const dry=ctx.createGain();dry.gain.value=1;return{node:d,feedback:g,dry:dry,delay:d.delayTime};} },
   { name:'GAIN', color:'#606060', desc:'volume', create:()=>{const g=getAudio().createGain();g.gain.value=0.15;return{node:g,gain:g.gain};} },
-  { name:'OUT', color:'#1a1a1a', desc:'speakers', create:()=>{const g=getAudio().createGain();g.gain.value=0.3;g.connect(getAudio().destination);return{node:g,gain:g.gain};} },
+  { name:'OUT', color:'#1a1a1a', desc:'speakers', create:()=>{const g=getAudio().createGain();g.gain.value=0.3;const an=getAudio().createAnalyser();an.fftSize=256;g.connect(an);an.connect(getAudio().destination);return{node:g,gain:g.gain,analyser:an,vuData:new Uint8Array(an.frequencyBinCount)};} },
   { name:'LFO', color:'#d4922a', desc:'modulator', create:()=>{const o=getAudio().createOscillator();o.type='sine';o.frequency.value=2;o.start();const g=getAudio().createGain();g.gain.value=100;o.connect(g);return{node:g,freq:o.frequency,depth:g.gain,osc:o};} },
 ];
 
@@ -179,9 +179,16 @@ function reconnectPatches() {
   for (const n of nodes) {
     if (n.audioObj) {
       try { n.audioObj.node.disconnect(); } catch(e) {}
-      // Reconnect OUT to destination
+      // Reconnect OUT through analyser to destination
       if (n.type.name === 'OUT') {
-        try { n.audioObj.node.connect(getAudio().destination); } catch(e) {}
+        try {
+          if (n.audioObj.analyser) {
+            n.audioObj.node.connect(n.audioObj.analyser);
+            n.audioObj.analyser.connect(getAudio().destination);
+          } else {
+            n.audioObj.node.connect(getAudio().destination);
+          }
+        } catch(e) {}
       }
     }
   }
@@ -265,7 +272,21 @@ function drawNode(n) {
   X.fillText(n.type.name, n.x, n.y + n.r + 14);
   X.font = '400 8px Lekton';
   X.fillStyle = '#00000030';
-  X.fillText(n.type.desc, n.x, n.y + n.r + 24);
+  // Show current parameter value if active
+  if (n.active && n.audioObj) {
+    if (n.audioObj.freq) {
+      const hz = n.audioObj.freq.value;
+      X.fillText(hz >= 1000 ? `${(hz/1000).toFixed(1)}kHz` : `${Math.round(hz)}Hz`, n.x, n.y + n.r + 24);
+    } else if (n.audioObj.gain) {
+      X.fillText(`${(n.audioObj.gain.value * 100).toFixed(0)}%`, n.x, n.y + n.r + 24);
+    } else if (n.audioObj.delay) {
+      X.fillText(`${(n.audioObj.delay.value * 1000).toFixed(0)}ms`, n.x, n.y + n.r + 24);
+    } else {
+      X.fillText(n.type.desc, n.x, n.y + n.r + 24);
+    }
+  } else {
+    X.fillText(n.type.desc, n.x, n.y + n.r + 24);
+  }
   X.textAlign = 'left';
 }
 
@@ -336,7 +357,7 @@ addEventListener('wheel', e => {
   const node = getHoveredNode();
   if (!node || !node.audioObj) return;
   e.preventDefault();
-  const delta = e.deltaY > 0 ? 0.95 : 1.05;
+  const delta = e.deltaY > 0 ? (1 / 1.0595) : 1.0595; // Exact semitone: 2^(1/12)
   if (node.audioObj.freq) {
     node.audioObj.freq.value = Math.max(20, Math.min(8000, node.audioObj.freq.value * delta));
   } else if (node.audioObj.gain) {
@@ -345,6 +366,57 @@ addEventListener('wheel', e => {
     node.audioObj.delay.value = Math.max(0.01, Math.min(1, node.audioObj.delay.value * delta));
   }
 }, { passive: false });
+
+// --- VU METER ---
+function drawVUMeter() {
+  const outNode = nodes.find(n => n.type.name === 'OUT');
+  if (!outNode || !outNode.active || !outNode.audioObj || !outNode.audioObj.analyser) return;
+
+  const an = outNode.audioObj.analyser;
+  const data = outNode.audioObj.vuData;
+  an.getByteTimeDomainData(data);
+
+  // Calculate RMS
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = (data[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / data.length);
+  const level = Math.min(1, rms * 4); // Scale up for visibility
+
+  // Draw meter bar near OUT node
+  const nx = outNode.x;
+  const ny = outNode.y;
+  const mw = 6, mh = 40;
+  const mx = nx + outNode.r + 10;
+  const my = ny - mh/2;
+
+  // Background
+  X.fillStyle = '#00000010';
+  X.fillRect(mx, my, mw, mh);
+
+  // Level bar (green to orange to red)
+  const fillH = level * mh;
+  const gradient = X.createLinearGradient(mx, my + mh, mx, my);
+  gradient.addColorStop(0, '#228a40');
+  gradient.addColorStop(0.6, '#d4922a');
+  gradient.addColorStop(1, '#CE2867');
+  X.fillStyle = gradient;
+  X.fillRect(mx, my + mh - fillH, mw, fillH);
+
+  // Border
+  X.strokeStyle = '#00000015';
+  X.lineWidth = 0.5;
+  X.strokeRect(mx, my, mw, mh);
+
+  // Label
+  X.fillStyle = '#00000025';
+  X.font = '7px Lekton';
+  X.textAlign = 'center';
+  X.fillText('VU', mx + mw/2, my - 3);
+  X.textAlign = 'left';
+}
 
 // --- MAIN LOOP ---
 function animate() {
@@ -364,6 +436,7 @@ function animate() {
 
   // Nodes
   for (const n of nodes) drawNode(n);
+  drawVUMeter();
 
   // Status
   const activeCount = nodes.filter(n => n.active).length;
