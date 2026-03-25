@@ -14,6 +14,23 @@
   #hud p { font-size: 9px; color: #00000020; letter-spacing: 0.08em; text-transform: uppercase; }
   #count { position: fixed; bottom: 16px; right: 24px; z-index: 10; pointer-events: none; }
   #count p { font-size: 9px; color: #00000012; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+  #dropZone { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  #dropZone.active { pointer-events: auto; }
+  #dropZone.dragover { background: rgba(61,109,244,0.03); }
+  #dropZone p { font-size: 11px; color: #3D6DF4; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.1; border: 1px dashed #3D6DF420; padding: 12px 24px; border-radius: 6px; cursor: pointer; pointer-events: auto; }
+  #dropZone p:hover { opacity: 0.25; border-color: #3D6DF450; }
+  #dropZone.dragover p { opacity: 0.3; border-color: #3D6DF4; }
+  #dropZone.loaded { display: none; }
+  #transport { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 15; display: none; align-items: center; gap: 10px; padding: 6px 16px; border-radius: 6px; background: rgba(245,240,232,0.7); backdrop-filter: blur(8px); border: 1px solid #00000008; }
+  #transport.visible { display: flex; }
+  #transport * { font-family: 'Lekton', monospace; }
+  #trackName { font-size: 9px; color: #00000025; letter-spacing: 0.04em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #playBtn { background: none; border: none; color: #3D6DF4; font-size: 12px; cursor: pointer; opacity: 0.4; }
+  #playBtn:hover { opacity: 0.8; }
+  #progressWrap { width: 140px; height: 14px; display: flex; align-items: center; cursor: pointer; }
+  #progressTrack { width: 100%; height: 2px; background: #00000008; border-radius: 1px; position: relative; overflow: hidden; }
+  #progressFill { height: 100%; background: #3D6DF4; width: 0%; border-radius: 1px; opacity: 0.4; }
+  #timeDisplay { font-size: 9px; color: #00000015; letter-spacing: 0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -25,6 +42,18 @@
 <div id="count">
   <p id="countText">park pop: 00</p>
 </div>
+<div id="dropZone" class="active">
+  <p onclick="document.getElementById('filePicker').click()">drop audio file</p>
+</div>
+<input type="file" id="filePicker" accept="audio/*" style="display:none">
+<div id="transport">
+  <span id="trackName">---</span>
+  <button id="playBtn">&#9654;</button>
+  <div id="progressWrap" onclick="seekAudio(event)">
+    <div id="progressTrack"><div id="progressFill"></div></div>
+  </div>
+  <span id="timeDisplay">0:00 / 0:00</span>
+</div>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -34,6 +63,76 @@ let mx = 0, my = 0;
 function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
 addEventListener('resize', resize); resize();
 addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+// --- AUDIO ENGINE ---
+const audio = {
+  ctx: null, analyser: null, source: null, element: null, freqData: null,
+  bands: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
+  smoothed: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
+  prev: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
+  hit: { bass: 0, lowMid: 0, mid: 0, high: 0, energy: 0 },
+  isLoaded: false, fileName: '',
+  init(file) {
+    if (this.element) { this.element.pause(); if (this.source) this.source.disconnect(); URL.revokeObjectURL(this.element.src); }
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.ctx.resume();
+    this.element = new Audio();
+    this.element.crossOrigin = 'anonymous';
+    this.element.src = URL.createObjectURL(file);
+    this.fileName = file.name.replace(/\.[^.]+$/, '');
+    this.source = this.ctx.createMediaElementSource(this.element);
+    this.analyser = this.ctx.createAnalyser();
+    this.analyser.fftSize = 2048; this.analyser.smoothingTimeConstant = 0.8;
+    this.source.connect(this.analyser); this.analyser.connect(this.ctx.destination);
+    this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
+    this.isLoaded = true;
+    document.getElementById('dropZone').classList.add('loaded');
+    document.getElementById('transport').classList.add('visible');
+    document.getElementById('trackName').textContent = this.fileName;
+    this.element.play();
+    document.getElementById('playBtn').innerHTML = '&#9646;&#9646;';
+  },
+  update() {
+    if (!this.isLoaded || !this.analyser) return;
+    this.analyser.getByteFrequencyData(this.freqData);
+    const binHz = this.ctx.sampleRate / this.analyser.fftSize;
+    const bassEnd = Math.round(250 / binHz), lowMidEnd = Math.round(1000 / binHz);
+    const midEnd = Math.round(4000 / binHz), highEnd = Math.min(Math.round(20000 / binHz), this.freqData.length);
+    function avg(data, from, to) { let s = 0; const c = Math.max(1, to - from); for (let i = from; i < to; i++) s += data[i]; return (s / c) / 255; }
+    const raw = { bass: avg(this.freqData, 1, bassEnd), lowMid: avg(this.freqData, bassEnd, lowMidEnd), mid: avg(this.freqData, lowMidEnd, midEnd), high: avg(this.freqData, midEnd, highEnd), energy: avg(this.freqData, 0, this.freqData.length) };
+    const s = this.smoothed;
+    s.bass = s.bass * 0.88 + raw.bass * 0.12; s.lowMid = s.lowMid * 0.85 + raw.lowMid * 0.15;
+    s.mid = s.mid * 0.85 + raw.mid * 0.15; s.high = s.high * 0.82 + raw.high * 0.18;
+    s.energy = s.energy * 0.85 + raw.energy * 0.15;
+    this.bands.bass = Math.min(1, s.bass * 3); this.bands.lowMid = Math.min(1, s.lowMid * 2.8);
+    this.bands.mid = Math.min(1, s.mid * 2.5); this.bands.high = Math.min(1, s.high * 3.5);
+    this.bands.energy = Math.min(1, s.energy * 2.5);
+    for (const k of ['bass', 'lowMid', 'mid', 'high', 'energy']) {
+      const delta = this.bands[k] - this.prev[k];
+      if (delta > 0.05) this.hit[k] = Math.min(1, this.hit[k] + delta * 3);
+      this.hit[k] *= 0.88; if (this.hit[k] < 0.01) this.hit[k] = 0;
+      this.prev[k] = this.bands[k];
+    }
+  }
+};
+
+// File input
+document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); });
+document.addEventListener('dragleave', e => { if (!document.contains(e.relatedTarget)) document.getElementById('dropZone').classList.remove('dragover'); });
+document.addEventListener('drop', e => { e.preventDefault(); document.getElementById('dropZone').classList.remove('dragover'); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('audio/')) audio.init(f); });
+document.getElementById('filePicker').addEventListener('change', e => { if (e.target.files[0]) audio.init(e.target.files[0]); });
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (!audio.element) return;
+  if (audio.element.paused) { audio.ctx.resume(); audio.element.play(); document.getElementById('playBtn').innerHTML = '&#9646;&#9646;'; }
+  else { audio.element.pause(); document.getElementById('playBtn').innerHTML = '&#9654;'; }
+});
+function seekAudio(e) { if (!audio.element) return; const r = document.getElementById('progressWrap').getBoundingClientRect(); audio.element.currentTime = ((e.clientX - r.left) / r.width) * audio.element.duration; }
+function fmtTime(s) { if (isNaN(s)) return '0:00'; return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+function updateTransport() {
+  if (!audio.element || !audio.isLoaded) return;
+  document.getElementById('progressFill').style.width = audio.element.duration ? `${(audio.element.currentTime / audio.element.duration) * 100}%` : '0%';
+  document.getElementById('timeDisplay').textContent = `${fmtTime(audio.element.currentTime)} / ${fmtTime(audio.element.duration)}`;
+}
 
 // Seeded random
 function srand(s) { return function() { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
@@ -131,38 +230,78 @@ const GOER_TYPES = [
 
 // --- PARK ELEMENTS ---
 function drawTree(x, y, sz) {
-  ctx.fillStyle = '#2a5a2a20';
-  ctx.beginPath(); ctx.arc(x, y - sz * 1.5, sz * 0.8, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#00000008'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(x, y - sz * 0.7); ctx.lineTo(x, y); ctx.stroke();
+  // Shadow on ground
+  ctx.fillStyle = '#00000005';
+  ctx.beginPath(); ctx.ellipse(x + sz * 0.3, y + 2, sz * 0.9, sz * 0.25, 0.2, 0, Math.PI * 2); ctx.fill();
+  // Trunk
+  ctx.strokeStyle = '#5a4a3a18'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x, y - sz * 0.7); ctx.lineTo(x - 1, y); ctx.stroke();
+  // Canopy — multiple overlapping circles for volume
+  ctx.fillStyle = '#2a6a2a15';
+  ctx.beginPath(); ctx.arc(x - sz * 0.2, y - sz * 1.3, sz * 0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#3a7a3a12';
+  ctx.beginPath(); ctx.arc(x + sz * 0.2, y - sz * 1.5, sz * 0.7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2a5a2a10';
+  ctx.beginPath(); ctx.arc(x, y - sz * 1.7, sz * 0.5, 0, Math.PI * 2); ctx.fill();
 }
 
 function drawBench(x, y, sz) {
-  ctx.strokeStyle = '#00000015'; ctx.lineWidth = 1.5;
+  // Shadow
+  ctx.fillStyle = '#00000004';
+  ctx.fillRect(x - sz + 2, y + sz * 0.1, sz * 2, sz * 0.2);
+  // Seat
+  ctx.fillStyle = '#5a4a3a12';
+  ctx.fillRect(x - sz, y - sz * 0.2, sz * 2, sz * 0.15);
+  ctx.strokeStyle = '#00000018'; ctx.lineWidth = 1;
   ctx.strokeRect(x - sz, y - sz * 0.2, sz * 2, sz * 0.15);
+  // Back rest
+  ctx.fillStyle = '#5a4a3a08';
+  ctx.fillRect(x - sz, y - sz * 0.45, sz * 2, sz * 0.1);
   // Legs
+  ctx.strokeStyle = '#00000015'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(x - sz * 0.8, y - sz * 0.05); ctx.lineTo(x - sz * 0.8, y + sz * 0.3); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x + sz * 0.8, y - sz * 0.05); ctx.lineTo(x + sz * 0.8, y + sz * 0.3); ctx.stroke();
 }
 
 function drawPath(x1, y1, x2, y2) {
-  ctx.strokeStyle = '#00000006'; ctx.lineWidth = 8;
-  ctx.setLineDash([2, 6]);
+  // Wider gravel-ish path
+  ctx.strokeStyle = '#00000004'; ctx.lineWidth = 14;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  // Dashed center line
+  ctx.strokeStyle = '#00000006'; ctx.lineWidth = 1;
+  ctx.setLineDash([3, 8]);
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
   ctx.setLineDash([]);
+}
+
+// Grass patches
+function drawGrassPatch(x, y, sz) {
+  ctx.fillStyle = '#4a8a4a06';
+  ctx.beginPath(); ctx.ellipse(x, y, sz, sz * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+// Flower clusters
+function drawFlowers(x, y, sz, rng2) {
+  for (let i = 0; i < 5; i++) {
+    const fx = x + (rng2() - 0.5) * sz;
+    const fy = y + (rng2() - 0.5) * sz * 0.4;
+    const colors = ['#CE286718', '#F4613818', '#3D6DF418', '#2C9FF418'];
+    ctx.fillStyle = colors[Math.floor(rng2() * colors.length)];
+    ctx.beginPath(); ctx.arc(fx, fy, 1.5 + rng2() * 1.5, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 // --- GENERATE PARK ---
 const rng = srand(42);
 const NUM_GOERS = 24;
-const PALETTE = ['#3D6DF4', '#F46138', '#CE2867', '#2C9FF4', '#333333', '#228B22', '#8B4513'];
+const PALETTE = ['#2850C8', '#E04520', '#B81850', '#1880D0', '#222222', '#1a6a1a', '#6a3510'];
 
 class ParkGoer {
   constructor(i) {
     this.i = i;
     this.type = Math.floor(rng() * GOER_TYPES.length);
     this.color = PALETTE[Math.floor(rng() * PALETTE.length)];
-    this.size = 5 + rng() * 4;
+    this.size = 6 + rng() * 5;
 
     // Position and movement
     this.homeX = W * 0.1 + rng() * W * 0.8;
@@ -177,12 +316,30 @@ class ParkGoer {
 
     // Social connections
     this.friends = [];
+
+    // Audio personality — each goer responds to a different band
+    const bands = ['bass', 'lowMid', 'mid', 'high'];
+    this.audioBand = bands[Math.floor(rng() * bands.length)];
+    this.audioSensitivity = 0.3 + rng() * 0.7; // how much they respond
+    this.audioDelay = rng() * 0.3; // slight reaction delay (0-0.3s worth of smoothing)
+    this.bounce = 0; // current bounce amount
+    this.headBob = 0; // head bobbing phase offset
   }
 
   update() {
+    // Audio reactivity — each goer reacts to their band differently
+    const bandVal = audio.bands[this.audioBand] || 0;
+    const hitVal = audio.hit[this.audioBand] || 0;
+
+    // Bounce on hits (vertical displacement)
+    this.bounce = this.bounce * 0.85 + hitVal * this.audioSensitivity * 12;
+
+    // Wander speed modulated by their band
+    const speedMod = 1 + bandVal * this.audioSensitivity * 3;
+
     // Gentle wander around home position
-    const wx = Math.sin(t * this.wanderSpeed + this.wanderPhase) * this.wanderR;
-    const wy = Math.cos(t * this.wanderSpeed * 0.7 + this.wanderPhase + 1) * this.wanderR * 0.5;
+    const wx = Math.sin(t * this.wanderSpeed * speedMod + this.wanderPhase) * (this.wanderR + bandVal * 30 * this.audioSensitivity);
+    const wy = Math.cos(t * this.wanderSpeed * speedMod * 0.7 + this.wanderPhase + 1) * this.wanderR * 0.5;
 
     // Mouse gentle attraction
     const dx = mx - this.x;
@@ -192,24 +349,50 @@ class ParkGoer {
     const ax = dist > 0 ? (dx / dist) * attract : 0;
     const ay = dist > 0 ? (dy / dist) * attract : 0;
 
-    this.x += (this.homeX + wx + ax - this.x) * 0.02;
-    this.y += (this.homeY + wy + ay - this.y) * 0.02;
+    // Energy pull — on high energy, goers gravitate slightly toward center
+    const ePull = audio.bands.energy * this.audioSensitivity * 8;
+    const ecx = (W / 2 - this.x) * ePull * 0.001;
+    const ecy = (H / 2 - this.y) * ePull * 0.001;
+
+    this.x += (this.homeX + wx + ax - this.x) * 0.02 + ecx;
+    this.y += (this.homeY + wy + ay - this.y) * 0.02 + ecy;
   }
 
   draw() {
+    const bandVal = audio.bands[this.audioBand] || 0;
+    const hitVal = audio.hit[this.audioBand] || 0;
+
     ctx.save();
-    ctx.translate(this.x, this.y);
-    // Tiny shadow
+    ctx.translate(this.x, this.y - this.bounce);
+
+    // Tiny shadow (wider when bouncing)
     ctx.fillStyle = '#00000006';
-    ctx.beginPath(); ctx.ellipse(0, this.size * 0.5 + 1, this.size * 0.6, this.size * 0.15, 0, 0, Math.PI * 2); ctx.fill();
-    // Draw goer
-    GOER_TYPES[this.type](ctx, this.color, this.size, t + this.i);
+    ctx.beginPath();
+    ctx.ellipse(0, this.size * 0.5 + 1 + this.bounce, this.size * 0.6 + this.bounce * 0.3, this.size * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw goer — phase modulated by their band for individual rhythm
+    const phaseBoost = bandVal * this.audioSensitivity * 2;
+    GOER_TYPES[this.type](ctx, this.color, this.size, t * (1 + phaseBoost) + this.i);
+
+    // Hit flash — brief colored ring around goer on their band's transient
+    if (hitVal > 0.2) {
+      ctx.beginPath();
+      ctx.arc(0, -this.size * 0.8, this.size * 1.5 + hitVal * 8, 0, Math.PI * 2);
+      ctx.strokeStyle = this.color;
+      ctx.globalAlpha = hitVal * 0.2;
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     ctx.restore();
 
-    // Label
+    // Label — shows band affinity when audio playing
     ctx.fillStyle = '#00000018';
     ctx.font = '9px Lekton';
-    ctx.fillText(this.label, this.x + this.size + 3, this.y - this.size * 0.5);
+    const labelText = audio.isLoaded ? this.audioBand.slice(0, 3) : this.label;
+    ctx.fillText(labelText, this.x + this.size + 3, this.y - this.size * 0.5 - this.bounce);
   }
 }
 
@@ -234,6 +417,12 @@ for (let i = 0; i < 8; i++) trees.push({ x: W * 0.05 + rng() * W * 0.9, y: H * 0
 
 const benches = [];
 for (let i = 0; i < 4; i++) benches.push({ x: W * 0.15 + rng() * W * 0.7, y: H * 0.2 + rng() * H * 0.6, s: 10 + rng() * 6 });
+
+const grassPatches = [];
+for (let i = 0; i < 12; i++) grassPatches.push({ x: rng() * W, y: rng() * H, s: 30 + rng() * 60 });
+
+const flowerSpots = [];
+for (let i = 0; i < 8; i++) flowerSpots.push({ x: W * 0.1 + rng() * W * 0.8, y: H * 0.1 + rng() * H * 0.8, s: 15 + rng() * 20, seed: Math.floor(rng() * 10000) });
 
 // --- GRID ---
 function drawGrid() {
@@ -260,8 +449,9 @@ function drawConnections() {
       // Only draw if close enough
       if (dist > 400) continue;
 
-      const alpha = Math.max(0.02, 0.08 * (1 - dist / 400));
-      ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+      const highGlow = audio.bands.high || 0;
+      const alpha = Math.max(0.02, (0.08 + highGlow * 0.15) * (1 - dist / 400));
+      ctx.strokeStyle = highGlow > 0.3 ? `rgba(61,109,244,${alpha})` : `rgba(0,0,0,${alpha})`;
       ctx.lineWidth = 0.6;
 
       // Curved connection
@@ -287,6 +477,7 @@ function drawConnections() {
 
 // --- MAIN LOOP ---
 function animate() {
+  audio.update();
   t += 0.016;
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#F5F0E8';
@@ -294,10 +485,16 @@ function animate() {
 
   drawGrid();
 
+  // Grass patches (background terrain)
+  for (const gp of grassPatches) drawGrassPatch(gp.x, gp.y, gp.s);
+
   // Paths between some benches
   for (let i = 0; i < benches.length - 1; i++) {
     drawPath(benches[i].x, benches[i].y, benches[i + 1].x, benches[i + 1].y);
   }
+
+  // Flowers
+  for (const fs of flowerSpots) drawFlowers(fs.x, fs.y, fs.s, srand(fs.seed));
 
   // Trees (behind goers)
   for (const tr of trees) drawTree(tr.x, tr.y, tr.s);
@@ -320,6 +517,7 @@ function animate() {
   ctx.arc(mx, my, 60 + Math.sin(t * 1.5) * 10, 0, Math.PI * 2);
   ctx.stroke();
 
+  updateTransport();
   document.getElementById('countText').textContent = `park pop: ${String(NUM_GOERS).padStart(2, '0')}`;
 
   requestAnimationFrame(animate);
