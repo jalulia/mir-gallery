@@ -729,17 +729,24 @@ function updateTooltip() {
 // === MAIN LOOP ===
 function draw(timestamp) {
   requestAnimationFrame(draw);
-  if (paused) return;
 
-  frame++;
-  t += 0.016;
+  if (!paused) {
+    frame++;
+    t += 0.016;
 
-  // Streaming
-  if (streaming && streamedCount < TOTAL) {
-    streamedCount = Math.min(TOTAL, streamedCount + STREAM_RATE);
+    // Streaming
+    if (streaming && streamedCount < TOTAL) {
+      streamedCount = Math.min(TOTAL, streamedCount + STREAM_RATE);
+    }
+
+    if (streaming && streamedCount >= TOTAL) {
+      streaming = false;
+      document.getElementById('btn-stream').textContent = 'complete';
+      document.getElementById('btn-stream').classList.remove('active');
+    }
   }
 
-  // Clear
+  // Always render — paused just freezes time, not the display
   ctx.fillStyle = '#0A0A0A';
   ctx.fillRect(0, 0, W, H);
 
@@ -754,19 +761,13 @@ function draw(timestamp) {
   drawHeatmap();
 
   // HUD
-  document.getElementById('frame-counter').textContent = `frame ${frame}`;
+  document.getElementById('frame-counter').textContent = paused ? `frame ${frame} [paused]` : `frame ${frame}`;
   document.getElementById('wave-stats').textContent = `streamed: ${streamedCount} / ${TOTAL}`;
 
   const totalDrift = strands.slice(0, streamedCount).reduce((sum, s) => sum + Math.abs(s.drift), 0);
   document.getElementById('drift-val').textContent = `\u03C3 ${(totalDrift / Math.max(1, streamedCount)).toFixed(4)}`;
 
   updateTooltip();
-
-  if (streaming && streamedCount >= TOTAL) {
-    streaming = false;
-    document.getElementById('btn-stream').textContent = 'complete';
-    document.getElementById('btn-stream').classList.remove('active');
-  }
 }
 
 // === INPUT ===
