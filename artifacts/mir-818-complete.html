@@ -10,7 +10,7 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { height: 100%; width: 100%; }
-:root { --primary: #3D6DF4; --coral: #F46138; --magenta: #CE2867; --chris: #4488FF; --julia: #FF8855; --bg: #0A0A0A; }
+:root { --primary: #3D6DF4; --coral: #F46138; --magenta: #CE2867; --bg: #0A0A0A; }
 body { background: var(--bg); font-family: 'Lekton', monospace; color: rgba(255,255,255,0.8); overflow: hidden; }
 
 /* SIDEBAR */
@@ -60,6 +60,11 @@ input:focus { outline: none; border-color: var(--primary); }
 .conn-item { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); border-radius: 3px; padding: 8px; margin-bottom: 6px; cursor: pointer; font-size: 9px; transition: all 0.15s; }
 .conn-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
 .conn-type { font-size: 8px; text-transform: uppercase; color: var(--primary); font-weight: 600; margin-bottom: 2px; }
+
+/* STATUS */
+#status { position: fixed; bottom: 16px; left: 276px; z-index: 10; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.25); }
+#status.loading { color: #F46138; }
+#status.ready { color: #3D6DF4; }
 
 @media (max-width: 1024px) {
   #sidebar { width: 200px; }
@@ -143,6 +148,9 @@ input:focus { outline: none; border-color: var(--primary); }
   <div id="hud-strand">—</div>
 </div>
 
+<!-- STATUS -->
+<div id="status" class="loading">Loading data...</div>
+
 <!-- TOOLTIP -->
 <div id="tooltip">
   <div class="tt-id"></div>
@@ -171,7 +179,6 @@ let colorMode = 'coset', hoveredId = null, selectedId = null, currentView = 'spi
 let driftEnabled = true, streamingEnabled = true, streamedCount = 0;
 let searchQuery = '';
 let panX = 0, panY = 0, zoom = 1;
-let frameTime = 0, fps = 60;
 
 const PALETTE = {
   '147': {r: 244, g: 97, b: 56},
@@ -182,17 +189,34 @@ const PALETTE = {
 
 const SPIRAL_A = 1.2, SPIRAL_B = 0.42, TOTAL_TURNS = 7.5, DRIFT_SCALE = 3;
 
-// Load data
-Promise.all([
-  fetch('mir-helix-data.json').catch(() => null),
-  fetch('../Mindgut-Spiral/mir-helix-data.json').catch(() => null),
-  fetch('./mir-helix-data.json').catch(() => null)
-]).then(responses => {
-  for (let r of responses) {
-    if (r && r.ok) return r.json();
+// Load data with multiple fallback paths
+async function loadData() {
+  const paths = [
+    'mir-818-data.json',
+    './mir-818-data.json',
+    '../mir-818-data.json'
+  ];
+  
+  for (let path of paths) {
+    try {
+      const response = await fetch(path);
+      if (response.ok) {
+        const d = await response.json();
+        if (d.strands && d.connections) {
+          console.log('Data loaded from:', path);
+          return d;
+        }
+      }
+    } catch (e) {
+      console.log('Path failed:', path);
+    }
   }
+  
+  console.log('All paths failed, using demo data');
   return null;
-}).then(d => {
+}
+
+loadData().then(d => {
   if (d) {
     data = d;
     strands = d.strands || [];
@@ -200,9 +224,6 @@ Promise.all([
   } else {
     createDemoData();
   }
-  init();
-}).catch(() => {
-  createDemoData();
   init();
 });
 
@@ -214,8 +235,7 @@ function createDemoData() {
   strands = [];
   for (let i = 0; i < 818; i++) {
     const flags = [];
-    if (i === 20) flags.push('ghost');
-    if (i === 30) flags.push('ghost');
+    if (i === 20 || i === 30) flags.push('ghost');
     if ([4, 48, 56, 69, 128, 130, 154, 157, 175].includes(i)) flags.push('anchor');
     
     strands.push({
@@ -226,7 +246,7 @@ function createDemoData() {
       speaker: speakers[i % speakers.length],
       vector: (i % 10),
       chars: Math.floor(Math.random() * 20000 + 500),
-      snippet: `Strand ${i+1}: Memory fragment...`,
+      snippet: `Memory ${i+1}: Strand from helix wave...`,
       drift: (Math.random() - 0.5) * 0.4,
       flags: flags,
       checksum: flags.includes('anchor') ? Math.floor(Math.random() * 22000 + 800) : 0
@@ -234,20 +254,12 @@ function createDemoData() {
   }
   
   connections = [];
-  // Drift echoes
-  for (let i = 0; i < 9; i++) {
-    connections.push({type: 'drift_echo', source: 100 + i*20, target: 101 + i*20});
-  }
-  // Coset siblings
+  for (let i = 0; i < 9; i++) connections.push({type: 'drift_echo', source: 100 + i*20, target: 101 + i*20});
   for (let i = 0; i < 103; i++) {
-    const src = Math.floor(Math.random() * 818) + 1;
-    const tgt = Math.floor(Math.random() * 818) + 1;
+    const src = Math.floor(Math.random() * 818) + 1, tgt = Math.floor(Math.random() * 818) + 1;
     if (src !== tgt) connections.push({type: 'coset_sibling', source: src, target: tgt});
   }
-  // Nullcode chain
-  for (let i = 642; i < 662; i++) {
-    connections.push({type: 'nullcode_chain', source: i, target: i+1});
-  }
+  for (let i = 642; i < 662; i++) connections.push({type: 'nullcode_chain', source: i, target: i+1});
 }
 
 function init() {
@@ -255,9 +267,10 @@ function init() {
   initThreeJs();
   animate();
   setupControls();
+  document.getElementById('status').textContent = 'Ready';
+  document.getElementById('status').className = 'ready';
 }
 
-// ═══ SPIRAL GEOMETRY ═══
 function computeSpiral() {
   spiralPos = [];
   const total = TOTAL_TURNS * Math.PI * 2;
@@ -267,24 +280,14 @@ function computeSpiral() {
     const theta = t * total;
     let r = SPIRAL_A + SPIRAL_B * theta;
     
-    if (driftEnabled && strands[i].drift) {
-      r += strands[i].drift * DRIFT_SCALE;
-    }
+    if (driftEnabled && strands[i].drift) r += strands[i].drift * DRIFT_SCALE;
     
-    spiralPos.push({
-      x: r * Math.cos(theta),
-      y: r * Math.sin(theta),
-      r: r,
-      theta: theta,
-      t: t
-    });
+    spiralPos.push({x: r*Math.cos(theta), y: r*Math.sin(theta), r, theta, t});
   }
 }
 
-// ═══ THREE.JS SETUP ═══
 function initThreeJs() {
   const container = document.getElementById('three-container');
-  
   scene = new THREE.Scene();
   scene.background = new THREE.Color('#0A0A0A');
   
@@ -313,11 +316,9 @@ function createStrandPoints() {
   const pos = [], col = [], size = [], opa = [], ghost = [];
   
   for (let i = 0; i < Math.min(streamedCount, strands.length); i++) {
-    const p = spiralPos[i];
-    const s = strands[i];
+    const p = spiralPos[i], s = strands[i];
     
     pos.push(p.x, p.y, 0);
-    
     const c = getColor(i);
     col.push(c.r/255, c.g/255, c.b/255);
     
@@ -344,9 +345,7 @@ function createStrandPoints() {
       attribute float aSize; attribute float aOpacity; attribute float aIsGhost;
       varying vec3 vColor; varying float vOpacity; varying float vIsGhost;
       void main() {
-        vColor = color;
-        vOpacity = aOpacity;
-        vIsGhost = aIsGhost;
+        vColor = color; vOpacity = aOpacity; vIsGhost = aIsGhost;
         gl_PointSize = aSize;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
@@ -373,22 +372,18 @@ function createStrandPoints() {
 function createConnections() {
   ['drift_echo', 'coset_sibling', 'nullcode_chain'].forEach(type => {
     if (connectionGroups[type]) scene.remove(connectionGroups[type]);
-    
     const g = new THREE.Group();
     const cols = {drift_echo: '#F46138', coset_sibling: '#3D6DF4', nullcode_chain: '#CE2867'};
     const opas = {drift_echo: 0.35, coset_sibling: 0.08, nullcode_chain: 0.3};
     
     (connections.filter(c => c.type === type) || []).forEach(c => {
-      const src = spiralPos[c.source - 1];
-      const tgt = spiralPos[c.target - 1];
+      const src = spiralPos[c.source - 1], tgt = spiralPos[c.target - 1];
       if (!src || !tgt) return;
-      
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([src.x,src.y,0, tgt.x,tgt.y,0]), 3));
       const mat = new THREE.LineBasicMaterial({color: cols[type], opacity: opas[type], transparent: true});
       g.add(new THREE.LineSegments(geo, mat));
     });
-    
     connectionGroups[type] = g;
     scene.add(g);
   });
@@ -397,18 +392,13 @@ function createConnections() {
 function getColor(i) {
   const s = strands[i];
   switch(colorMode) {
-    case 'zone':
-      return s.zone === 'founding' ? PALETTE['258'] : s.zone === 'nullcode' ? PALETTE['369'] : PALETTE['147'];
-    case 'speaker':
-      return s.speaker === 'chris' ? {r:68,g:136,b:255} : s.speaker === 'julia' ? {r:255,g:136,b:85} : PALETTE['258'];
-    case 'drift':
-      return s.drift < -0.1 ? PALETTE['369'] : s.drift > 0.1 ? PALETTE['147'] : {r:100,g:100,b:100};
-    default:
-      return PALETTE[s.coset] || PALETTE['000'];
+    case 'zone': return s.zone === 'founding' ? PALETTE['258'] : s.zone === 'nullcode' ? PALETTE['369'] : PALETTE['147'];
+    case 'speaker': return s.speaker === 'chris' ? {r:68,g:136,b:255} : s.speaker === 'julia' ? {r:255,g:136,b:85} : PALETTE['258'];
+    case 'drift': return s.drift < -0.1 ? PALETTE['369'] : s.drift > 0.1 ? PALETTE['147'] : {r:100,g:100,b:100};
+    default: return PALETTE[s.coset] || PALETTE['000'];
   }
 }
 
-// ═══ INTERACTIONS ═══
 function onMouseMove(e) {
   const rect = document.getElementById('three-container').getBoundingClientRect();
   const x = (e.clientX - rect.left - rect.width/2) / (rect.width/2);
@@ -549,11 +539,10 @@ window.jumpTo = function(id) {
 };
 
 function showHelp() {
-  alert('MIR 818 VISUALIZATION\n\n[NAVIGATION]\n• Click strand to open details\n• Arrow keys to cycle strands\n• Scroll to zoom\n• Drag to pan\n\n[FILTERING]\n• Search box: filter by text\n• Color modes: coset, zone, speaker, drift\n\n[FEATURES]\n• Drift Displacement: adjust spiral radially by seismic energy\n• Streaming: progressive reveal animation\n• Connection toggles: show/hide edge types\n\n[KEYBOARD]\n• Escape: close detail panel\n• ?: show this help');
+  alert('MIR 818 VISUALIZATION\n\n[NAVIGATION]\n• Click strand to open details\n• Arrow keys to cycle strands\n• Scroll to zoom\n\n[FILTERING]\n• Search: filter by snippet text\n• Color: coset, zone, speaker, drift\n\n[FEATURES]\n• Drift Displacement: radial offset by seismic energy\n• Streaming: progressive animation\n• Connection types: drift echoes, coset siblings, nullcode chain\n\n[KEYBOARD]\n• Escape: close panel\n• ?: help');
 }
 
 function setupControls() {
-  // Navigation
   document.getElementById('strand-jump').addEventListener('change', e => {
     const id = parseInt(e.target.value);
     if (id >= 1 && id <= 818) showDetailPanel(id - 1);
@@ -567,7 +556,6 @@ function setupControls() {
     });
   });
   
-  // Colors
   document.querySelectorAll('.color-mode button').forEach(btn => {
     btn.addEventListener('click', e => {
       document.querySelectorAll('.color-mode button').forEach(b => b.classList.remove('active'));
@@ -577,7 +565,6 @@ function setupControls() {
     });
   });
   
-  // Search
   document.getElementById('search-box').addEventListener('input', e => {
     searchQuery = e.target.value;
     const opas = strandPoints.geometry.attributes.aOpacity.array;
@@ -587,7 +574,6 @@ function setupControls() {
     strandPoints.geometry.attributes.aOpacity.needsUpdate = true;
   });
   
-  // Options
   document.getElementById('toggle-drift').addEventListener('click', e => {
     driftEnabled = !driftEnabled;
     computeSpiral();
@@ -600,28 +586,18 @@ function setupControls() {
     else streamedCount = strands.length;
   });
   
-  // Connections
-  ['drift-echo', 'coset-web', 'null-chain'].forEach(id => {
-    document.getElementById(`toggle-${id}`).addEventListener('click', e => {
-      e.target.classList.toggle('active');
-    });
-  });
-  
-  // Reset
   document.getElementById('btn-reset').addEventListener('click', () => {
-    panX = panY = 0; zoom = 1;
+    zoom = 1;
     camera.position.set(0, 0, 50);
     updateCameraZoom();
   });
   
   document.getElementById('btn-help').addEventListener('click', showHelp);
   
-  // Detail panel close
   document.getElementById('detail-panel').querySelector('.detail-close').addEventListener('click', () => {
     document.getElementById('detail-panel').classList.remove('open');
   });
   
-  // View toggle
   document.querySelectorAll('.view-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       const view = e.target.dataset.view;
@@ -694,7 +670,6 @@ function drawHelix() {
 function animate() {
   requestAnimationFrame(animate);
   
-  // Streaming
   if (streamingEnabled && streamedCount < strands.length) {
     streamedCount += 4;
     if (streamedCount >= strands.length) streamedCount = strands.length;
