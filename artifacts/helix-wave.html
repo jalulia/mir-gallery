@@ -24,18 +24,18 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 
 #hud-tl {
   position: fixed; top: 28px; left: 32px; z-index: 10;
-  color: #ffffff; opacity: 0.8;
+  color: #ffffff; opacity: 1;
   font-family: 'Lekton', monospace; font-size: 10px;
   letter-spacing: 0.08em; text-transform: uppercase;
   line-height: 1.6;
 }
 #hud-tl .title { font-size: 12px; font-weight: 700; opacity: 1; color: #3D6DF4; }
-#hud-tl .sub { opacity: 0.6; }
+#hud-tl .sub { opacity: 0.75; }
 #hud-tl .zone-tag { display: inline-block; padding: 1px 6px; border-radius: 2px; font-size: 9px; margin-top: 4px; }
 
 #hud-tr {
   position: fixed; top: 28px; right: 32px; z-index: 10;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.85);
   font-family: 'Lekton', monospace; font-size: 10px;
   letter-spacing: 0.06em; text-transform: uppercase;
   text-align: right; line-height: 1.6;
@@ -44,8 +44,8 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 /* Viewports */
 .viewport {
   position: fixed; z-index: 10;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(10,10,10,0.6);
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(10,10,10,0.7);
   backdrop-filter: blur(4px);
   border-radius: 3px;
   overflow: hidden;
@@ -54,12 +54,12 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 .viewport-label {
   position: absolute; top: 4px; left: 6px;
   font-family: 'Lekton', monospace; font-size: 8px;
-  color: rgba(255,255,255,0.55); letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.78); letter-spacing: 0.08em;
   text-transform: uppercase; pointer-events: none;
 }
 .viewport-border {
   position: absolute; inset: 0;
-  border: 1px solid rgba(61,109,244,0.15);
+  border: 1px solid rgba(61,109,244,0.28);
   border-radius: 3px; pointer-events: none;
 }
 
@@ -69,10 +69,10 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 
 #tooltip {
   position: fixed; z-index: 20; pointer-events: none;
-  background: rgba(10,10,10,0.92); border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(10,10,10,0.94); border: 1px solid rgba(255,255,255,0.18);
   border-radius: 3px; padding: 8px 10px;
   font-family: 'Lekton', monospace; font-size: 9px;
-  color: rgba(255,255,255,0.8); letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.92); letter-spacing: 0.04em;
   line-height: 1.5; display: none; max-width: 240px;
 }
 #tooltip .tt-id { color: #3D6DF4; font-weight: 700; font-size: 10px; }
@@ -89,12 +89,12 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 }
 #controls button {
   font-family: 'Lekton', monospace; font-size: 10px;
-  background: none; border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.7);
+  background: none; border: 1px solid rgba(255,255,255,0.35); color: rgba(255,255,255,0.88);
   padding: 5px 12px; border-radius: 3px; cursor: pointer;
   letter-spacing: 0.06em; text-transform: uppercase;
   transition: all 0.15s; white-space: nowrap;
 }
-#controls button:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.3); }
+#controls button:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 #controls button.active { border-color: #3D6DF4; color: #3D6DF4; background: rgba(61,109,244,0.08); }
 
 #zone-legend {
@@ -104,7 +104,7 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 .zone-swatch {
   display: flex; align-items: center; gap: 6px;
   font-family: 'Lekton', monospace; font-size: 9px;
-  color: rgba(255,255,255,0.6); letter-spacing: 0.06em; text-transform: uppercase;
+  color: rgba(255,255,255,0.88); letter-spacing: 0.06em; text-transform: uppercase;
 }
 .zone-swatch .dot { width: 6px; height: 6px; border-radius: 50%; }
 </style>
@@ -391,7 +391,7 @@ function drawHelix() {
     ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillStyle = 'rgba(255,255,255,0.58)';
     ctx.font = '8px Lekton';
     ctx.textAlign = 'center';
     ctx.fillText(tick || '1', tx, cy + 38);
@@ -419,7 +419,7 @@ function drawHelix() {
         ctx.lineTo(pt.x, pt.y);
       }
     }
-    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.15)`;
+    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.28)`;
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -429,11 +429,11 @@ function drawHelix() {
     const s = strands[i];
     const pt = getHelixPoint(i, 0, t);
     const rgb = getZoneColor(s.zone);
-    const depthAlpha = 0.3 + (pt.z * 0.5 + 0.5) * 0.7;
+    const depthAlpha = 0.45 + (pt.z * 0.5 + 0.5) * 0.55;
 
     // Base dot
-    let r = 1.2;
-    let alpha = 0.4 * depthAlpha;
+    let r = 1.5;
+    let alpha = 0.6 * depthAlpha;
 
     // Ghost strands — flickering tombstones, hollow
     if (s.isGhost) {
@@ -517,8 +517,8 @@ function drawHelix() {
       lastZone = zone;
     }
     const rgb = [C_EH, C_SP, C_PW][c];
-    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.25)`;
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.42)`;
+    ctx.lineWidth = 1.4;
     ctx.stroke();
   }
 
@@ -587,7 +587,7 @@ function drawDriftView() {
 
   // Labels for biggest events
   ctxDrift.font = '7px Lekton';
-  ctxDrift.fillStyle = 'rgba(255,255,255,0.5)';
+  ctxDrift.fillStyle = 'rgba(255,255,255,0.75)';
   const big = SEISMIC.filter(s => Math.abs(s[1]) > 0.3 && s[0] <= visible);
   for (const [sid, drift] of big) {
     const x = (sid / TOTAL) * w;
@@ -686,7 +686,7 @@ function drawHeatmap() {
 
 // === BACKGROUND ===
 function drawGrid() {
-  ctx.strokeStyle = 'rgba(255,255,255,0.015)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
   ctx.lineWidth = 1;
   const step = 60;
   for (let x = step; x < W; x += step) {
