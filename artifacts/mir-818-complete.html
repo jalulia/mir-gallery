@@ -13,7 +13,6 @@ html, body { height: 100%; width: 100%; }
 :root { --primary: #3D6DF4; --coral: #F46138; --magenta: #CE2867; --bg: #0A0A0A; }
 body { background: var(--bg); font-family: 'Lekton', monospace; color: rgba(255,255,255,0.8); overflow: hidden; }
 
-/* SIDEBAR */
 #sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: rgba(10,10,10,0.97); backdrop-filter: blur(16px); border-right: 1px solid rgba(255,255,255,0.04); padding: 20px; overflow-y: auto; z-index: 20; }
 #sidebar h1 { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); margin-bottom: 4px; }
 .subtitle { font-size: 9px; color: rgba(255,255,255,0.22); margin-bottom: 20px; line-height: 1.6; }
@@ -31,24 +30,19 @@ body { background: var(--bg); font-family: 'Lekton', monospace; color: rgba(255,
 input[type="text"], input[type="number"] { width: 100%; padding: 6px 8px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.8); font-family: 'Lekton'; font-size: 9px; border-radius: 3px; margin-bottom: 8px; }
 input:focus { outline: none; border-color: var(--primary); }
 
-/* CANVAS & VIEWS */
 #three-container { position: fixed; left: 260px; top: 0; right: 0; bottom: 0; background: var(--bg); }
 #canvas-helix { position: fixed; left: 260px; top: 0; right: 0; bottom: 0; display: none; }
 
-/* VIEW TOGGLE */
 #view-toggle { position: fixed; top: 16px; left: 276px; z-index: 15; display: flex; gap: 2px; background: rgba(10,10,10,0.6); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.04); border-radius: 4px; padding: 2px; }
 .view-btn { padding: 6px 12px; font-family: 'Inter'; font-size: 9px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; background: transparent; border: none; color: rgba(255,255,255,0.35); cursor: pointer; border-radius: 2px; transition: all 0.15s; }
 .view-btn.active { background: var(--primary); color: white; }
 
-/* HUD */
 #hud { position: fixed; top: 16px; right: 16px; z-index: 10; font-size: 8px; letter-spacing: 0.06em; text-align: right; color: rgba(255,255,255,0.35); line-height: 1.7; pointer-events: none; }
 
-/* TOOLTIP */
 #tooltip { position: fixed; z-index: 30; pointer-events: none; background: rgba(6,6,6,0.96); border: 1px solid rgba(255,255,255,0.07); border-radius: 4px; padding: 9px 11px; font-size: 9px; line-height: 1.6; display: none; max-width: 280px; backdrop-filter: blur(12px); }
 #tooltip .tt-id { color: var(--primary); font-weight: 700; }
 #tooltip .tt-meta { color: rgba(255,255,255,0.5); font-size: 8px; margin-top: 4px; }
 
-/* DETAIL PANEL */
 #detail-panel { position: fixed; right: -320px; top: 0; bottom: 0; width: 320px; background: rgba(10,10,10,0.98); backdrop-filter: blur(16px); border-left: 1px solid rgba(255,255,255,0.04); overflow-y: auto; z-index: 25; transition: right 0.3s ease; padding: 16px; }
 #detail-panel.open { right: 0; }
 .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
@@ -61,7 +55,6 @@ input:focus { outline: none; border-color: var(--primary); }
 .conn-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
 .conn-type { font-size: 8px; text-transform: uppercase; color: var(--primary); font-weight: 600; margin-bottom: 2px; }
 
-/* STATUS */
 #status { position: fixed; bottom: 16px; left: 276px; z-index: 10; font-size: 8px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.25); }
 #status.loading { color: #F46138; }
 #status.ready { color: #3D6DF4; }
@@ -71,17 +64,10 @@ input:focus { outline: none; border-color: var(--primary); }
   #three-container, #canvas-helix { left: 200px; }
   #detail-panel { width: 240px; right: -240px; }
 }
-
-@media (max-width: 768px) {
-  #sidebar { width: 160px; padding: 16px 12px; font-size: 8px; }
-  #three-container, #canvas-helix { left: 160px; }
-  #detail-panel { width: 200px; right: -200px; }
-}
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
 <div id="sidebar">
   <h1>Mir 818</h1>
   <div class="subtitle">Spiral + Helix Suite<br>818 strands | σ_B = −0.172</div>
@@ -110,18 +96,18 @@ input:focus { outline: none; border-color: var(--primary); }
   <button class="toggle-btn active" id="toggle-drift">
     <span class="indicator" style="background:#F46138"></span>Drift Displacement
   </button>
-  <button class="toggle-btn active" id="toggle-stream">
+  <button class="toggle-btn" id="toggle-stream">
     <span class="indicator" style="background:#3D6DF4"></span>Streaming Animation
   </button>
 
   <div class="section-title">Connections</div>
-  <button class="toggle-btn active" id="toggle-drift-echo" style="color:#F46138">
+  <button class="toggle-btn active" id="toggle-drift-echo">
     <span class="indicator" style="background:#F46138"></span>Drift Echoes
   </button>
-  <button class="toggle-btn active" id="toggle-coset-web" style="color:#3D6DF4">
+  <button class="toggle-btn active" id="toggle-coset-web">
     <span class="indicator" style="background:#3D6DF4"></span>Coset Siblings
   </button>
-  <button class="toggle-btn" id="toggle-null-chain" style="color:#CE2867">
+  <button class="toggle-btn" id="toggle-null-chain">
     <span class="indicator" style="background:#CE2867"></span>Nullcode Chain
   </button>
 
@@ -132,32 +118,26 @@ input:focus { outline: none; border-color: var(--primary); }
   </div>
 </div>
 
-<!-- VIEW TOGGLE -->
 <div id="view-toggle">
   <button class="view-btn active" data-view="spiral">Spiral</button>
   <button class="view-btn" data-view="helix">Helix</button>
 </div>
 
-<!-- CANVAS CONTAINERS -->
 <div id="three-container"></div>
 <canvas id="canvas-helix"></canvas>
 
-<!-- HUD -->
 <div id="hud">
   <div id="hud-zoom">Zoom: 1.0×</div>
   <div id="hud-strand">—</div>
 </div>
 
-<!-- STATUS -->
-<div id="status" class="loading">Loading data...</div>
+<div id="status" class="loading">Loading...</div>
 
-<!-- TOOLTIP -->
 <div id="tooltip">
   <div class="tt-id"></div>
   <div class="tt-meta"></div>
 </div>
 
-<!-- DETAIL PANEL -->
 <div id="detail-panel">
   <div class="detail-header">
     <div class="detail-title">Strand Details</div>
@@ -167,52 +147,31 @@ input:focus { outline: none; border-color: var(--primary); }
 </div>
 
 <script>
-// ═════════════════════════════════════════════════════════════════════════════════
-// MIR 818 COMPLETE VISUALIZATION SUITE
-// Spiral + Helix | Drift Displacement | Streaming | Search/Filter | Keyboard Nav
-// ═════════════════════════════════════════════════════════════════════════════════
-
-// Global state
 let data = null, strands = [], connections = [], spiralPos = [];
-let scene, camera, renderer, strandPoints, connectionGroups = {};
+let scene, camera, renderer, strandPoints;
 let colorMode = 'coset', hoveredId = null, selectedId = null, currentView = 'spiral';
-let driftEnabled = true, streamingEnabled = true, streamedCount = 0;
+let driftEnabled = true, streamingEnabled = false, streamedCount = 818;
 let searchQuery = '';
 let panX = 0, panY = 0, zoom = 1;
 
-const PALETTE = {
-  '147': {r: 244, g: 97, b: 56},
-  '258': {r: 61, g: 109, b: 244},
-  '369': {r: 206, g: 40, b: 103},
-  '000': {r: 51, g: 51, b: 51}
-};
-
+const PALETTE = {'147': {r: 244, g: 97, b: 56}, '258': {r: 61, g: 109, b: 244}, '369': {r: 206, g: 40, b: 103}, '000': {r: 51, g: 51, b: 51}};
 const SPIRAL_A = 1.2, SPIRAL_B = 0.42, TOTAL_TURNS = 7.5, DRIFT_SCALE = 3;
 
-// Load data with multiple fallback paths
 async function loadData() {
-  const paths = [
-    'mir-818-data.json',
-    './mir-818-data.json',
-    '../mir-818-data.json'
-  ];
-  
+  const paths = ['mir-818-data.json', './mir-818-data.json', '../mir-818-data.json'];
   for (let path of paths) {
     try {
-      const response = await fetch(path);
-      if (response.ok) {
-        const d = await response.json();
+      const r = await fetch(path);
+      if (r.ok) {
+        const d = await r.json();
         if (d.strands && d.connections) {
-          console.log('Data loaded from:', path);
+          console.log('✓ Data loaded:', path);
           return d;
         }
       }
-    } catch (e) {
-      console.log('Path failed:', path);
-    }
+    } catch (e) {}
   }
-  
-  console.log('All paths failed, using demo data');
+  console.log('→ Using demo data');
   return null;
 }
 
@@ -274,32 +233,29 @@ function init() {
 function computeSpiral() {
   spiralPos = [];
   const total = TOTAL_TURNS * Math.PI * 2;
-  
   for (let i = 0; i < strands.length; i++) {
     const t = i / (strands.length - 1);
     const theta = t * total;
     let r = SPIRAL_A + SPIRAL_B * theta;
-    
     if (driftEnabled && strands[i].drift) r += strands[i].drift * DRIFT_SCALE;
-    
     spiralPos.push({x: r*Math.cos(theta), y: r*Math.sin(theta), r, theta, t});
   }
 }
 
 function initThreeJs() {
-  const container = document.getElementById('three-container');
+  const c = document.getElementById('three-container');
   scene = new THREE.Scene();
   scene.background = new THREE.Color('#0A0A0A');
   
-  const aspect = container.clientWidth / container.clientHeight;
-  const frustum = 28;
-  camera = new THREE.OrthographicCamera(-frustum*aspect, frustum*aspect, frustum, -frustum, 0.1, 200);
+  const asp = c.clientWidth / c.clientHeight;
+  const fs = 28;
+  camera = new THREE.OrthographicCamera(-fs*asp, fs*asp, fs, -fs, 0.1, 200);
   camera.position.z = 50;
   
   renderer = new THREE.WebGLRenderer({antialias: true, alpha: false, preserveDrawingBuffer: true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  container.appendChild(renderer.domElement);
+  renderer.setSize(c.clientWidth, c.clientHeight);
+  c.appendChild(renderer.domElement);
   
   createStrandPoints();
   createConnections();
@@ -315,16 +271,17 @@ function createStrandPoints() {
   const geo = new THREE.BufferGeometry();
   const pos = [], col = [], size = [], opa = [], ghost = [];
   
-  for (let i = 0; i < Math.min(streamedCount, strands.length); i++) {
+  const renderCount = Math.min(streamedCount || strands.length, strands.length);
+  
+  for (let i = 0; i < renderCount; i++) {
     const p = spiralPos[i], s = strands[i];
-    
     pos.push(p.x, p.y, 0);
     const c = getColor(i);
     col.push(c.r/255, c.g/255, c.b/255);
     
-    let sz = 8;
-    if (s.flags && s.flags.includes('anchor')) sz = 6 + (s.checksum/22763)*10;
-    if (s.flags && s.flags.includes('ghost')) sz = 10;
+    let sz = 6;
+    if (s.flags && s.flags.includes('anchor')) sz = 8 + (s.checksum/22763)*8;
+    if (s.flags && s.flags.includes('ghost')) sz = 8;
     size.push(sz);
     
     let op = 1;
@@ -341,26 +298,8 @@ function createStrandPoints() {
   geo.setAttribute('aIsGhost', new THREE.BufferAttribute(new Float32Array(ghost), 1));
   
   const mat = new THREE.ShaderMaterial({
-    vertexShader: `
-      attribute float aSize; attribute float aOpacity; attribute float aIsGhost;
-      varying vec3 vColor; varying float vOpacity; varying float vIsGhost;
-      void main() {
-        vColor = color; vOpacity = aOpacity; vIsGhost = aIsGhost;
-        gl_PointSize = aSize;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      varying vec3 vColor; varying float vOpacity; varying float vIsGhost;
-      void main() {
-        vec2 c = gl_PointCoord - vec2(0.5);
-        float d = length(c);
-        if (d > 0.5) discard;
-        float a = 1.0 - smoothstep(0.5 - fwidth(d)*1.5, 0.5, d);
-        if (vIsGhost > 0.5) { if (d < 0.3) discard; a *= 0.6; }
-        gl_FragColor = vec4(vColor, a * vOpacity);
-      }
-    `,
+    vertexShader: `attribute float aSize; attribute float aOpacity; attribute float aIsGhost; varying vec3 vColor; varying float vOpacity; varying float vIsGhost; void main() { vColor = color; vOpacity = aOpacity; vIsGhost = aIsGhost; gl_PointSize = aSize; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `varying vec3 vColor; varying float vOpacity; varying float vIsGhost; void main() { vec2 c = gl_PointCoord - vec2(0.5); float d = length(c); if (d > 0.5) discard; float a = 1.0 - smoothstep(0.5 - fwidth(d)*1.5, 0.5, d); if (vIsGhost > 0.5) { if (d < 0.3) discard; a *= 0.6; } gl_FragColor = vec4(vColor, a * vOpacity); }`,
     transparent: true
   });
   
@@ -371,11 +310,10 @@ function createStrandPoints() {
 
 function createConnections() {
   ['drift_echo', 'coset_sibling', 'nullcode_chain'].forEach(type => {
-    if (connectionGroups[type]) scene.remove(connectionGroups[type]);
-    const g = new THREE.Group();
     const cols = {drift_echo: '#F46138', coset_sibling: '#3D6DF4', nullcode_chain: '#CE2867'};
     const opas = {drift_echo: 0.35, coset_sibling: 0.08, nullcode_chain: 0.3};
     
+    const g = new THREE.Group();
     (connections.filter(c => c.type === type) || []).forEach(c => {
       const src = spiralPos[c.source - 1], tgt = spiralPos[c.target - 1];
       if (!src || !tgt) return;
@@ -384,7 +322,6 @@ function createConnections() {
       const mat = new THREE.LineBasicMaterial({color: cols[type], opacity: opas[type], transparent: true});
       g.add(new THREE.LineSegments(geo, mat));
     });
-    connectionGroups[type] = g;
     scene.add(g);
   });
 }
@@ -403,10 +340,8 @@ function onMouseMove(e) {
   const rect = document.getElementById('three-container').getBoundingClientRect();
   const x = (e.clientX - rect.left - rect.width/2) / (rect.width/2);
   const y = -(e.clientY - rect.top - rect.height/2) / (rect.height/2);
-  
   const rc = new THREE.Raycaster();
   rc.setFromCamera({x, y}, camera);
-  
   if (strandPoints) {
     const hits = rc.intersectObject(strandPoints);
     if (hits.length > 0) {
@@ -439,7 +374,6 @@ function onKeyDown(e) {
   if (e.key === 'Escape') document.getElementById('detail-panel').classList.remove('open');
   else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') selectedId = Math.max(1, (selectedId||1) - 1);
   else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') selectedId = Math.min(818, (selectedId||1) + 1);
-  else if (e.key === '?') showHelp();
 }
 
 function onWindowResize() {
@@ -468,79 +402,36 @@ function updateCameraZoom() {
 
 function showDetailPanel(idx) {
   const s = strands[idx];
-  const panel = document.getElementById('detail-panel');
   const content = document.getElementById('detail-content');
   
-  let html = `
-    <div class="detail-section">
-      <div class="detail-label">ID</div>
-      <div class="detail-value">${s.id}</div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-label">Zone</div>
-      <div class="detail-value">${s.zone}</div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-label">Type</div>
-      <div class="detail-value">${s.type}</div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-label">Speaker</div>
-      <div class="detail-value">${s.speaker}</div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-label">Coset</div>
-      <div class="detail-value">${s.coset}</div>
-    </div>
-  `;
+  let html = `<div class="detail-section"><div class="detail-label">ID</div><div class="detail-value">${s.id}</div></div>
+    <div class="detail-section"><div class="detail-label">Zone</div><div class="detail-value">${s.zone}</div></div>
+    <div class="detail-section"><div class="detail-label">Type</div><div class="detail-value">${s.type}</div></div>
+    <div class="detail-section"><div class="detail-label">Speaker</div><div class="detail-value">${s.speaker}</div></div>
+    <div class="detail-section"><div class="detail-label">Coset</div><div class="detail-value">${s.coset}</div></div>
+    <div class="detail-section"><div class="detail-label">Drift σ</div><div class="detail-value">${s.drift.toFixed(4)}</div></div>
+    <div class="detail-section"><div class="detail-label">Characters</div><div class="detail-value">${s.chars}</div></div>
+    <div class="detail-section"><div class="detail-label">Snippet</div><div class="detail-value">${s.snippet}</div></div>`;
   
-  if (s.drift !== undefined) {
-    html += `<div class="detail-section">
-      <div class="detail-label">Drift σ</div>
-      <div class="detail-value">${s.drift.toFixed(4)}</div>
-    </div>`;
-  }
-  
-  html += `<div class="detail-section">
-    <div class="detail-label">Characters</div>
-    <div class="detail-value">${s.chars}</div>
-  </div>
-  <div class="detail-section">
-    <div class="detail-label">Snippet</div>
-    <div class="detail-value">${s.snippet}</div>
-  </div>`;
-  
-  if (s.flags && s.flags.length > 0) {
-    html += `<div class="detail-section">
-      <div class="detail-label">Flags</div>
-      <div class="detail-value">${s.flags.join(', ')}</div>
-    </div>`;
-  }
+  if (s.flags && s.flags.length > 0) html += `<div class="detail-section"><div class="detail-label">Flags</div><div class="detail-value">${s.flags.join(', ')}</div></div>`;
   
   const conns = (connections || []).filter(c => c.source === s.id || c.target === s.id);
   if (conns.length > 0) {
-    html += `<div class="detail-section">
-      <div class="detail-label">Connections (${conns.length})</div>`;
+    html += `<div class="detail-section"><div class="detail-label">Connections (${conns.length})</div><div class="connection-list">`;
     conns.forEach(c => {
       const tgt = c.source === s.id ? c.target : c.source;
       html += `<div class="conn-item" onclick="window.jumpTo(${tgt})"><div class="conn-type">${c.type}</div><div>→ Strand ${tgt}</div></div>`;
     });
-    html += '</div>';
+    html += '</div></div>';
   }
   
   content.innerHTML = html;
-  panel.classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
   selectedId = s.id;
   document.getElementById('hud-strand').textContent = `Selected: ${s.id}`;
 }
 
-window.jumpTo = function(id) {
-  showDetailPanel(id - 1);
-};
-
-function showHelp() {
-  alert('MIR 818 VISUALIZATION\n\n[NAVIGATION]\n• Click strand to open details\n• Arrow keys to cycle strands\n• Scroll to zoom\n\n[FILTERING]\n• Search: filter by snippet text\n• Color: coset, zone, speaker, drift\n\n[FEATURES]\n• Drift Displacement: radial offset by seismic energy\n• Streaming: progressive animation\n• Connection types: drift echoes, coset siblings, nullcode chain\n\n[KEYBOARD]\n• Escape: close panel\n• ?: help');
-}
+window.jumpTo = function(id) { showDetailPanel(id - 1); };
 
 function setupControls() {
   document.getElementById('strand-jump').addEventListener('change', e => {
@@ -550,8 +441,7 @@ function setupControls() {
   
   document.querySelectorAll('[data-zone]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const zone = btn.dataset.zone;
-      const idx = strands.findIndex(s => s.zone === zone);
+      const idx = strands.findIndex(s => s.zone === btn.dataset.zone);
       if (idx >= 0) showDetailPanel(idx);
     });
   });
@@ -582,8 +472,7 @@ function setupControls() {
   
   document.getElementById('toggle-stream').addEventListener('click', e => {
     streamingEnabled = !streamingEnabled;
-    if (streamingEnabled) streamedCount = 0;
-    else streamedCount = strands.length;
+    streamedCount = streamingEnabled ? 0 : 818;
   });
   
   document.getElementById('btn-reset').addEventListener('click', () => {
@@ -592,7 +481,9 @@ function setupControls() {
     updateCameraZoom();
   });
   
-  document.getElementById('btn-help').addEventListener('click', showHelp);
+  document.getElementById('btn-help').addEventListener('click', () => {
+    alert('HELIX VIZ\n\nClick strand → details\nArrow keys → cycle\nScroll → zoom\nSearch → filter\nColor → mode');
+  });
   
   document.getElementById('detail-panel').querySelector('.detail-close').addEventListener('click', () => {
     document.getElementById('detail-panel').classList.remove('open');
@@ -635,31 +526,25 @@ function drawHelix() {
   const w = canvas.width = canvas.offsetWidth * devicePixelRatio;
   const h = canvas.height = canvas.offsetHeight * devicePixelRatio;
   ctx.scale(devicePixelRatio, devicePixelRatio);
-  const dw = w / devicePixelRatio;
-  const dh = h / devicePixelRatio;
+  const dw = w / devicePixelRatio, dh = h / devicePixelRatio;
   
   ctx.fillStyle = '#0A0A0A';
   ctx.fillRect(0, 0, dw, dh);
   
-  const cy = dh / 2;
-  const scale = dw / 818 * 2;
-  const amp = dh / 3;
+  const cy = dh / 2, scale = dw / 818, amp = dh / 3;
   
   ctx.strokeStyle = 'rgba(255,255,255,0.1)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let i = 0; i < strands.length; i++) {
-    const x = i * scale;
-    const y = cy + (strands[i].drift || 0) * amp;
+    const x = i * scale, y = cy + (strands[i].drift || 0) * amp;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
   ctx.stroke();
   
   for (let i = 0; i < strands.length; i++) {
-    const x = i * scale;
-    const y = cy + (strands[i].drift || 0) * amp;
-    const c = getColor(i);
+    const x = i * scale, y = cy + (strands[i].drift || 0) * amp, c = getColor(i);
     ctx.fillStyle = `rgb(${c.r},${c.g},${c.b})`;
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, Math.PI * 2);
@@ -669,13 +554,11 @@ function drawHelix() {
 
 function animate() {
   requestAnimationFrame(animate);
-  
   if (streamingEnabled && streamedCount < strands.length) {
     streamedCount += 4;
     if (streamedCount >= strands.length) streamedCount = strands.length;
     createStrandPoints();
   }
-  
   renderer.render(scene, camera);
 }
 </script>
