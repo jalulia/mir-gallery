@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mir 780 — Double Helix</title>
+<title>Mir 814 — Double Helix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lekton:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -93,7 +93,7 @@ canvas { display: block; }
 <div id="scanlines"></div>
 
 <div id="hud-tl">
-  <div class="title">MIR 780</div>
+  <div class="title">MIR 814</div>
   <div class="sub">double helix // memory portrait</div>
   <div class="sub" id="strand-count">loading...</div>
 </div>
@@ -117,7 +117,7 @@ canvas { display: block; }
     <div class="leg-item"><span class="leg-dot" style="background:#3D6DF4"></span>chris (1–187)</div>
     <div class="leg-item"><span class="leg-dot" style="background:#2C9FF4"></span>interleaved (188–641)</div>
     <div class="leg-item"><span class="leg-dot" style="background:#CE2867"></span>nullcodes (642–662)</div>
-    <div class="leg-item"><span class="leg-dot" style="background:#F46138"></span>recent (663–780)</div>
+    <div class="leg-item"><span class="leg-dot" style="background:#F46138"></span>recent (663–814)</div>
   </div>
 </div>
 
@@ -163,7 +163,7 @@ const ZONE_NULL   = new THREE.Color(0xCE2867);
 const ZONE_RECENT = new THREE.Color(0xF46138);
 
 // === DATA ===
-const TOTAL = 780;
+const TOTAL = 814;
 const VOIDS = new Set([5, 21, 31, 49, 57, 70, 129, 131, 155, 158, 176]);
 const NULL_START = 642, NULL_END = 662;
 
@@ -192,7 +192,7 @@ function mulberry32(a) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const rng = mulberry32(780);
+const rng = mulberry32(814);
 
 // Generate strands
 const strands = [];
@@ -413,10 +413,10 @@ function drawDriftTimeline() {
 
   // Zone backgrounds
   const zones = [
-    { start: 0, end: 187/780, color: 'rgba(61,109,244,0.06)' },
-    { start: 187/780, end: 641/780, color: 'rgba(44,159,244,0.04)' },
-    { start: 641/780, end: 662/780, color: 'rgba(206,40,103,0.08)' },
-    { start: 662/780, end: 1, color: 'rgba(244,97,56,0.05)' }
+    { start: 0, end: 187/814, color: 'rgba(61,109,244,0.06)' },
+    { start: 187/814, end: 641/814, color: 'rgba(44,159,244,0.04)' },
+    { start: 641/814, end: 662/814, color: 'rgba(206,40,103,0.08)' },
+    { start: 662/814, end: 1, color: 'rgba(244,97,56,0.05)' }
   ];
   for (const z of zones) {
     driftCtx.fillStyle = z.color;
