@@ -1004,27 +1004,29 @@ function init(data) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DATA LOADING
+// DATA — INLINE (no fetch dependency)
 // ═══════════════════════════════════════════════════════════════════════════
 resize();
 window.addEventListener('resize', resize);
 requestAnimationFrame(draw);
 
-// Try loading from external JSON first, then fall back to inline
-fetch('mir-helix-data.json')
-  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(data => init(data))
-  .catch(() => {
-    // Try alternate path
-    fetch('../Mindgut-Spiral/mir-helix-data.json')
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(data => init(data))
-      .catch(() => {
-        document.getElementById('status').textContent = 'ERROR: No data file found';
-        document.getElementById('status').className = 'error';
-        console.error('Could not load mir-helix-data.json from any path.');
-      });
-  });
+// Init called from data script below
+
+</script>
+<script src="mir-helix-data.js"></script>
+<script>
+// Initialize after data script has loaded
+if (typeof INLINE_DATA !== 'undefined') {
+  init(INLINE_DATA);
+} else {
+  fetch('mir-helix-data.json')
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(data => init(data))
+    .catch(() => {
+      document.getElementById('status').textContent = 'ERROR: No data';
+      document.getElementById('status').className = 'error';
+    });
+}
 </script>
 </body>
 </html>
