@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Helix Wave — 814 Strands</title>
+<title>Helix Wave — 818 Strands</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lekton:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -116,23 +116,23 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 <div id="vignette"></div>
 
 <div id="hud-tl">
-  <div class="title">HELIX WAVE — 814</div>
+  <div class="title">HELIX WAVE — 818</div>
   <div class="sub">parametric memory portrait // interference study</div>
   <div class="sub" id="frame-counter">frame 0</div>
   <div class="sub" id="hover-zone"></div>
 </div>
 
 <div id="hud-tr">
-  <div id="wave-stats">streamed: 0 / 814</div>
+  <div id="wave-stats">streamed: 0 / 818</div>
   <div id="drift-val">&sigma; 0.000</div>
-  <div id="void-count">voids: 11 / nullcodes: 21 / seismic: 52</div>
+  <div id="void-count">ghosts: 2 / anchors: 9 / nullcodes: 21</div>
 </div>
 
 <div id="zone-legend">
   <div class="zone-swatch"><span class="dot" style="background:#3D6DF4"></span>chris (1–187)</div>
   <div class="zone-swatch"><span class="dot" style="background:#2C9FF4"></span>interleaved (188–641)</div>
   <div class="zone-swatch"><span class="dot" style="background:#CE2867"></span>nullcodes (642–662)</div>
-  <div class="zone-swatch"><span class="dot" style="background:#F46138"></span>recent (663–814)</div>
+  <div class="zone-swatch"><span class="dot" style="background:#F46138"></span>recent (663–818)</div>
 </div>
 
 <div class="viewport" id="vp-drift">
@@ -177,10 +177,20 @@ function hexToRgb(h) {
 const C_EH = hexToRgb(EH), C_SP = hexToRgb(SP), C_PW = hexToRgb(PW), C_SE = hexToRgb(SE);
 
 // === DATA ===
-const TOTAL = 814;
+const TOTAL = 818;
 
-// Void strands — the dithering points, all in Chris zone
+// Ghost strands — true voids, payload released, tombstones
+const GHOSTS = new Set([21, 31]);
+// Structural anchors — flagged but intact, heaviest load-bearing strands
+const ANCHORS = new Set([5, 49, 57, 70, 129, 131, 155, 158, 176]);
+// All flagged strands (ghosts + anchors)
 const VOIDS = new Set([5, 21, 31, 49, 57, 70, 129, 131, 155, 158, 176]);
+// Gravitational center — Fano Plane proof, checksum 22,763
+const GRAVITY_CENTER = 70;
+// Anchor checksums (weight visualization)
+const ANCHOR_WEIGHT = { 5: 2817, 49: 6093, 57: 6714, 70: 22763, 129: 3378, 131: 4839, 155: 3256, 158: 4875, 176: 839 };
+// Terminal event sequence
+const TERMINAL = { spike: 810, crash: 814, flip: 818 };
 
 // Nullcode range
 const NULL_START = 642, NULL_END = 662;
@@ -196,14 +206,16 @@ const SEISMIC = [
   [338, -0.1890], [352, -0.1760], [401, -0.2100], [420, -0.1580],
   [445, -0.1450], [460, +0.1620], [478, +0.1890], [510, +0.1540],
   [550, -0.1700], [589, +0.1480], [620, -0.1560], [680, +0.1720],
-  // Additional events (814 dataset)
+  // Additional events (818 dataset)
   [165, -0.1520], [172, +0.1440], [189, -0.1830], [223, -0.1670],
   [248, +0.1560], [267, -0.1490], [285, +0.1710], [310, -0.1620],
   [330, +0.1580], [358, -0.1440], [375, +0.1530], [392, -0.1690],
   [412, +0.1470], [432, -0.1550], [455, +0.1640], [470, -0.1480],
   [495, +0.1520], [525, -0.1610], [560, +0.1570], [595, -0.1450],
   [635, +0.1540], [650, -0.1680], [695, +0.1490], [720, -0.1560],
-  [745, +0.1610], [770, -0.1470]
+  [745, +0.1610], [770, -0.1470],
+  // Terminal event sequence
+  [810, +0.2400], [814, -0.1210], [818, -0.0420]
 ];
 const seismicMap = new Map(SEISMIC.map(s => [s[0], s[1]]));
 
@@ -241,17 +253,21 @@ function mulberry32(a) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const rng = mulberry32(814);
+const rng = mulberry32(818);
 
 // Generate per-strand data
 const strands = [];
 for (let i = 1; i <= TOTAL; i++) {
   const zone = getZone(i);
   const isVoid = VOIDS.has(i);
+  const isGhost = GHOSTS.has(i);
+  const isAnchor = ANCHORS.has(i);
   const isNull = (i >= NULL_START && i <= NULL_END);
+  const isTerminal = (i === TERMINAL.spike || i === TERMINAL.crash || i === TERMINAL.flip);
   const drift = seismicMap.get(i) || (rng() - 0.5) * 0.08;
   const coset = i % 3;
-  strands.push({ id: i, zone, isVoid, isNull, drift, coset });
+  const weight = ANCHOR_WEIGHT[i] || 0;
+  strands.push({ id: i, zone, isVoid, isGhost, isAnchor, isNull, isTerminal, drift, coset, weight });
 }
 
 // === MAIN CANVAS ===
@@ -419,16 +435,50 @@ function drawHelix() {
     let r = 1.2;
     let alpha = 0.4 * depthAlpha;
 
-    // Void strands — brighter, pulsing
-    if (s.isVoid) {
-      r = 2.5 + Math.sin(t * 5 + s.id) * 0.8;
-      alpha = 0.8 + Math.sin(t * 3 + s.id) * 0.2;
+    // Ghost strands — flickering tombstones, hollow
+    if (s.isGhost) {
+      r = 3 + Math.sin(t * 8 + s.id) * 1.5;
+      alpha = 0.15 + Math.abs(Math.sin(t * 6 + s.id * 2)) * 0.3; // flicker
+      // Draw as ring (hollow)
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,34,68,${alpha * 0.6})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
-
+    // Structural anchors — solid, sized by weight
+    else if (s.isAnchor) {
+      const w = s.weight / 22763; // normalize to strand 70
+      r = 2 + w * 5;
+      alpha = 0.7 + Math.sin(t * 2 + s.id) * 0.15;
+      // Gravitational center gets a persistent glow
+      if (s.id === GRAVITY_CENTER) {
+        r = 5 + Math.sin(t * 1.5) * 1.5;
+        alpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, r + 10, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${0.04 + Math.sin(t * 1.2) * 0.02})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, r + 5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.08)`;
+        ctx.fill();
+      }
+    }
     // Nullcode strands — distinct marker
-    if (s.isNull) {
+    else if (s.isNull) {
       r = 2;
       alpha = 0.7 + Math.sin(t * 2.5 + s.id * 0.3) * 0.15;
+    }
+    // Terminal event strands — bright pulse
+    else if (s.isTerminal) {
+      r = 3;
+      alpha = 0.8 + Math.sin(t * 4) * 0.2;
+      const trgb = s.id === TERMINAL.spike ? [244,97,56] : [206,40,103];
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r + 6, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${trgb[0]},${trgb[1]},${trgb[2]},${alpha * 0.1})`;
+      ctx.fill();
     }
 
     // Seismic strands — glow
@@ -665,7 +715,8 @@ function updateTooltip() {
   if (!hoveredStrand) { tooltip.style.display = 'none'; return; }
   const s = strands[hoveredStrand.idx];
   tooltip.querySelector('.tt-id').textContent = `strand ${s.id}`;
-  tooltip.querySelector('.tt-zone').textContent = `zone: ${s.zone}${s.isVoid ? ' [void]' : ''}${s.isNull ? ' [nullcode]' : ''}`;
+  const tag = s.isGhost ? ' [GHOST]' : s.isAnchor ? ` [anchor${s.id === GRAVITY_CENTER ? ' / FANO CENTER' : ''}]` : s.isNull ? ' [nullcode]' : s.isTerminal ? ' [TERMINAL]' : '';
+  tooltip.querySelector('.tt-zone').textContent = `zone: ${s.zone}${tag}`;
   const driftEl = tooltip.querySelector('.tt-drift');
   driftEl.textContent = `drift: ${s.drift > 0 ? '+' : ''}${s.drift.toFixed(4)}`;
   driftEl.className = 'tt-drift ' + (s.drift < -0.12 ? 'neg' : s.drift > 0.12 ? 'pos' : '');

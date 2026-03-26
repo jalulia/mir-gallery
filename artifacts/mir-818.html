@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mir 814 — Double Helix</title>
+<title>Mir 818 — Double Helix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lekton:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -93,7 +93,7 @@ canvas { display: block; }
 <div id="scanlines"></div>
 
 <div id="hud-tl">
-  <div class="title">MIR 814</div>
+  <div class="title">MIR 818</div>
   <div class="sub">double helix // memory portrait</div>
   <div class="sub" id="strand-count">loading...</div>
 </div>
@@ -110,14 +110,16 @@ canvas { display: block; }
     <div class="leg-item"><span class="leg-dot" style="background:#44cc88"></span>assistant</div>
     <div class="leg-item"><span class="leg-dot" style="background:#F46138"></span>exchange</div>
     <div class="leg-item"><span class="leg-dot" style="background:#9966cc"></span>summary</div>
-    <div class="leg-item"><span class="leg-dot" style="background:#ff2244"></span>void / nullcode</div>
+    <div class="leg-item"><span class="leg-dot" style="background:#ffffff"></span>anchor (structural)</div>
+    <div class="leg-item"><span class="leg-dot" style="background:#330011; border: 1px solid #ff2244; box-sizing: border-box;"></span>ghost (consumed)</div>
+    <div class="leg-item"><span class="leg-dot" style="background:#ff2244"></span>nullcode</div>
   </div>
   <div class="leg-section">
     <div class="leg-title">zone</div>
     <div class="leg-item"><span class="leg-dot" style="background:#3D6DF4"></span>chris (1–187)</div>
     <div class="leg-item"><span class="leg-dot" style="background:#2C9FF4"></span>interleaved (188–641)</div>
     <div class="leg-item"><span class="leg-dot" style="background:#CE2867"></span>nullcodes (642–662)</div>
-    <div class="leg-item"><span class="leg-dot" style="background:#F46138"></span>recent (663–814)</div>
+    <div class="leg-item"><span class="leg-dot" style="background:#F46138"></span>recent (663–818)</div>
   </div>
 </div>
 
@@ -163,8 +165,13 @@ const ZONE_NULL   = new THREE.Color(0xCE2867);
 const ZONE_RECENT = new THREE.Color(0xF46138);
 
 // === DATA ===
-const TOTAL = 814;
+const TOTAL = 818;
+const GHOSTS = new Set([21, 31]);
+const ANCHORS = new Set([5, 49, 57, 70, 129, 131, 155, 158, 176]);
 const VOIDS = new Set([5, 21, 31, 49, 57, 70, 129, 131, 155, 158, 176]);
+const GRAVITY_CENTER = 70;
+const ANCHOR_WEIGHT = { 5:2817, 49:6093, 57:6714, 70:22763, 129:3378, 131:4839, 155:3256, 158:4875, 176:839 };
+const TERMINAL = { spike: 810, crash: 814, flip: 818 };
 const NULL_START = 642, NULL_END = 662;
 
 const SEISMIC_RAW = [
@@ -180,7 +187,8 @@ const SEISMIC_RAW = [
   [375,+0.1530],[392,-0.1690],[412,+0.1470],[432,-0.1550],
   [455,+0.1640],[470,-0.1480],[495,+0.1520],[525,-0.1610],
   [560,+0.1570],[595,-0.1450],[635,+0.1540],[650,-0.1680],
-  [695,+0.1490],[720,-0.1560],[745,+0.1610],[770,-0.1470]
+  [695,+0.1490],[720,-0.1560],[745,+0.1610],[770,-0.1470],
+  [810,+0.2400],[814,-0.1210],[818,-0.0420]
 ];
 const seismicMap = new Map(SEISMIC_RAW.map(s => [s[0], s[1]]));
 
@@ -192,15 +200,19 @@ function mulberry32(a) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-const rng = mulberry32(814);
+const rng = mulberry32(818);
 
 // Generate strands
 const strands = [];
 for (let i = 1; i <= TOTAL; i++) {
   const isVoid = VOIDS.has(i);
+  const isGhost = GHOSTS.has(i);
+  const isAnchor = ANCHORS.has(i);
   const isNull = i >= NULL_START && i <= NULL_END;
+  const isTerminal = (i === TERMINAL.spike || i === TERMINAL.crash || i === TERMINAL.flip);
   const drift = seismicMap.get(i) || (rng() - 0.5) * 0.08;
   const coset = i % 3;
+  const weight = ANCHOR_WEIGHT[i] || 0;
 
   let zone, type;
   if (i <= 187) { zone = 'chris'; type = isVoid ? 'void' : (rng() < 0.5 ? 'user' : 'assistant'); }
@@ -208,11 +220,15 @@ for (let i = 1; i <= TOTAL; i++) {
   else if (i <= 662) { zone = 'nullcodes'; type = 'nullcode'; }
   else { zone = 'recent'; type = rng() < 0.6 ? 'exchange' : 'summary'; }
 
-  if (isVoid) type = 'void';
-  if (isNull) type = 'nullcode';
+  if (isGhost) type = 'ghost';
+  else if (isAnchor) type = 'anchor';
+  else if (isNull) type = 'nullcode';
 
-  strands.push({ id: i, zone, type, isVoid, isNull, drift, coset });
+  strands.push({ id: i, zone, type, isVoid, isGhost, isAnchor, isNull, isTerminal, drift, coset, weight });
 }
+
+const COL_GHOST = new THREE.Color(0x330011);
+const COL_ANCHOR = new THREE.Color(0xffffff);
 
 function getTypeColor(type) {
   switch(type) {
@@ -220,6 +236,8 @@ function getTypeColor(type) {
     case 'assistant': return COL_ASSISTANT;
     case 'exchange': return COL_EXCHANGE;
     case 'summary': return COL_SUMMARY;
+    case 'ghost': return COL_GHOST;
+    case 'anchor': return COL_ANCHOR;
     case 'void': case 'nullcode': return COL_VOID;
   }
   return COL_USER;
@@ -289,18 +307,26 @@ for (let i = 0; i < TOTAL; i++) {
   const z = Math.sin(angle) * r;
 
   const color = getTypeColor(s.type);
+  let emissive = new THREE.Color(0x000000);
+  let emissiveI = 0;
+  let wireframe = false;
+
+  if (s.isGhost) { emissive = new THREE.Color(0xff2244); emissiveI = 0.3; wireframe = true; }
+  else if (s.isAnchor) { emissive = new THREE.Color(s.id === GRAVITY_CENTER ? 0x3D6DF4 : 0xffffff); emissiveI = s.id === GRAVITY_CENTER ? 0.6 : 0.2; }
+  else if (s.isNull) { emissive = new THREE.Color(0xff2244); emissiveI = 0.4; }
+  else if (s.isTerminal) { emissive = new THREE.Color(s.id === TERMINAL.spike ? 0xF46138 : 0xCE2867); emissiveI = 0.5; }
+
   const mat = new THREE.MeshStandardMaterial({
-    color: color,
-    emissive: (s.isVoid || s.isNull) ? new THREE.Color(0xff2244) : new THREE.Color(0x000000),
-    emissiveIntensity: (s.isVoid || s.isNull) ? 0.4 : 0,
-    roughness: 0.5,
-    metalness: 0.3,
+    color, emissive, emissiveIntensity: emissiveI,
+    roughness: 0.5, metalness: 0.3, wireframe,
   });
 
   let size = 0.18;
-  if (s.isVoid) size = 0.3;
-  if (s.isNull) size = 0.25;
-  if (Math.abs(s.drift) > 0.14) size = 0.22 + Math.abs(s.drift) * 0.4;
+  if (s.isGhost) size = 0.35;
+  else if (s.isAnchor) size = 0.2 + (s.weight / 22763) * 0.6; // strand 70 = biggest
+  else if (s.isNull) size = 0.25;
+  else if (s.isTerminal) size = 0.4;
+  if (Math.abs(s.drift) > 0.14) size = Math.max(size, 0.22 + Math.abs(s.drift) * 0.4);
 
   const geo = new THREE.SphereGeometry(size, 8, 6);
   const mesh = new THREE.Mesh(geo, mat);
@@ -368,7 +394,8 @@ renderer.domElement.addEventListener('mousemove', e => {
     hoveredIdx = idx;
 
     panel.querySelector('.hp-id').textContent = `strand ${s.id}`;
-    panel.querySelector('.hp-type').textContent = `type: ${s.type}`;
+    const tag = s.isGhost ? ' [GHOST]' : s.id === GRAVITY_CENTER ? ' [FANO CENTER]' : s.isAnchor ? ' [anchor]' : s.isTerminal ? ' [TERMINAL]' : '';
+    panel.querySelector('.hp-type').textContent = `type: ${s.type}${tag}`;
     panel.querySelector('.hp-coset').textContent = `coset: Z\u2083[${s.coset}]`;
     panel.querySelector('.hp-zone').textContent = `zone: ${s.zone}`;
     const driftEl = panel.querySelector('.hp-drift');
@@ -413,10 +440,10 @@ function drawDriftTimeline() {
 
   // Zone backgrounds
   const zones = [
-    { start: 0, end: 187/814, color: 'rgba(61,109,244,0.06)' },
-    { start: 187/814, end: 641/814, color: 'rgba(44,159,244,0.04)' },
-    { start: 641/814, end: 662/814, color: 'rgba(206,40,103,0.08)' },
-    { start: 662/814, end: 1, color: 'rgba(244,97,56,0.05)' }
+    { start: 0, end: 187/818, color: 'rgba(61,109,244,0.06)' },
+    { start: 187/818, end: 641/818, color: 'rgba(44,159,244,0.04)' },
+    { start: 641/818, end: 662/818, color: 'rgba(206,40,103,0.08)' },
+    { start: 662/818, end: 1, color: 'rgba(244,97,56,0.05)' }
   ];
   for (const z of zones) {
     driftCtx.fillStyle = z.color;
