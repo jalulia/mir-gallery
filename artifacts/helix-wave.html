@@ -25,18 +25,18 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 #hud-tl {
   position: fixed; top: 28px; left: 32px; z-index: 10;
   color: #ffffff; opacity: 1;
-  font-family: 'Lekton', monospace; font-size: 10px;
+  font-family: 'Lekton', monospace; font-size: 11px;
   letter-spacing: 0.08em; text-transform: uppercase;
   line-height: 1.6;
 }
-#hud-tl .title { font-size: 12px; font-weight: 700; opacity: 1; color: #3D6DF4; }
-#hud-tl .sub { opacity: 0.75; }
+#hud-tl .title { font-size: 13px; font-weight: 700; opacity: 1; color: #3D6DF4; }
+#hud-tl .sub { opacity: 0.88; color: #d0d0d0; }
 #hud-tl .zone-tag { display: inline-block; padding: 1px 6px; border-radius: 2px; font-size: 9px; margin-top: 4px; }
 
 #hud-tr {
   position: fixed; top: 28px; right: 32px; z-index: 10;
-  color: rgba(255,255,255,0.85);
-  font-family: 'Lekton', monospace; font-size: 10px;
+  color: rgba(255,255,255,0.92);
+  font-family: 'Lekton', monospace; font-size: 11px;
   letter-spacing: 0.06em; text-transform: uppercase;
   text-align: right; line-height: 1.6;
 }
@@ -53,9 +53,15 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 .viewport canvas { display: block; }
 .viewport-label {
   position: absolute; top: 4px; left: 6px;
-  font-family: 'Lekton', monospace; font-size: 8px;
-  color: rgba(255,255,255,0.78); letter-spacing: 0.08em;
+  font-family: 'Lekton', monospace; font-size: 9px;
+  color: rgba(255,255,255,0.88); letter-spacing: 0.08em;
   text-transform: uppercase; pointer-events: none;
+}
+.viewport-desc {
+  position: absolute; bottom: 3px; left: 6px; right: 6px;
+  font-family: 'Lekton', monospace; font-size: 8px;
+  color: rgba(255,255,255,0.55); letter-spacing: 0.04em;
+  pointer-events: none;
 }
 .viewport-border {
   position: absolute; inset: 0;
@@ -89,7 +95,7 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 }
 #controls button {
   font-family: 'Lekton', monospace; font-size: 10px;
-  background: none; border: 1px solid rgba(255,255,255,0.35); color: rgba(255,255,255,0.88);
+  background: none; border: 1px solid rgba(255,255,255,0.45); color: rgba(255,255,255,0.95);
   padding: 5px 12px; border-radius: 3px; cursor: pointer;
   letter-spacing: 0.06em; text-transform: uppercase;
   transition: all 0.15s; white-space: nowrap;
@@ -103,8 +109,34 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 }
 .zone-swatch {
   display: flex; align-items: center; gap: 6px;
+  font-family: 'Lekton', monospace; font-size: 10px;
+  color: rgba(255,255,255,0.92); letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+#zoom-indicator {
+  position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%);
+  z-index: 10; font-family: 'Lekton', monospace; font-size: 9px;
+  color: rgba(255,255,255,0.5); letter-spacing: 0.06em;
+  text-transform: uppercase; pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+#connection-legend {
+  position: fixed; bottom: 80px; left: 32px; z-index: 10;
   font-family: 'Lekton', monospace; font-size: 9px;
-  color: rgba(255,255,255,0.88); letter-spacing: 0.06em; text-transform: uppercase;
+  color: rgba(255,255,255,0.7); letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+#connection-legend .cl-head {
+  font-size: 10px; color: rgba(255,255,255,0.88); text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 4px;
+}
+#connection-legend .cl-row { display: flex; align-items: center; gap: 6px; }
+#connection-legend .cl-line {
+  width: 20px; height: 2px; border-radius: 1px; flex-shrink: 0;
+}
+#connection-legend .cl-dash {
+  width: 20px; height: 0; border-top: 1px dashed; flex-shrink: 0;
 }
 .zone-swatch .dot { width: 6px; height: 6px; border-radius: 50%; }
 </style>
@@ -138,18 +170,32 @@ canvas { display: block; position: fixed; top: 0; left: 0; }
 <div class="viewport" id="vp-drift">
   <canvas id="cv-drift"></canvas>
   <div class="viewport-label">seismic drift</div>
+  <div class="viewport-desc">balance displacement per strand &mdash; bars show magnitude + direction of &sigma;_B events</div>
   <div class="viewport-border"></div>
 </div>
 <div class="viewport" id="vp-phase">
   <canvas id="cv-phase"></canvas>
   <div class="viewport-label">nullcode knot</div>
+  <div class="viewport-desc">lissajous trace of 21 &perp;/&Oslash; strands (642&ndash;662) &mdash; dots are flagged void positions</div>
   <div class="viewport-border"></div>
 </div>
 <div class="viewport" id="vp-heatmap">
   <canvas id="cv-heatmap"></canvas>
   <div class="viewport-label">zone density</div>
+  <div class="viewport-desc">helix cross-section heat &mdash; brightness = coset rotation + drift intensity</div>
   <div class="viewport-border"></div>
 </div>
+
+<div id="connection-legend">
+  <div class="cl-head">connections</div>
+  <div class="cl-row"><span class="cl-line" style="background:rgba(61,109,244,0.42)"></span> coset Z&#8323;[0] thread</div>
+  <div class="cl-row"><span class="cl-line" style="background:rgba(44,159,244,0.42)"></span> coset Z&#8323;[1] thread</div>
+  <div class="cl-row"><span class="cl-line" style="background:rgba(206,40,103,0.42)"></span> coset Z&#8323;[2] thread</div>
+  <div class="cl-row"><span class="cl-line" style="background:rgba(255,255,255,0.28)"></span> zone wisp &mdash; sequential strand flow</div>
+  <div class="cl-row"><span class="cl-dash" style="border-color:rgba(244,97,56,0.6)"></span> seismic disruption &mdash; drift event</div>
+</div>
+
+<div id="zoom-indicator">scroll to zoom &middot; 1.0x</div>
 
 <div id="tooltip">
   <div class="tt-id"></div>
@@ -305,6 +351,42 @@ let streamedCount = 0;
 const STREAM_RATE = 4; // strands per frame
 let mouseX = 0, mouseY = 0;
 let hoveredStrand = null;
+let zoomLevel = 1.0;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 6.0;
+const ZOOM_SPEED = 0.08;
+let panX = 0, panY = 0;
+let isPanning = false, panStartX = 0, panStartY = 0, panStartPX = 0, panStartPY = 0;
+
+// Scroll to zoom
+canvas.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -1 : 1;
+  const oldZoom = zoomLevel;
+  zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel + delta * ZOOM_SPEED * zoomLevel));
+  // Zoom toward cursor
+  const zr = zoomLevel / oldZoom;
+  panX = mouseX - (mouseX - panX) * zr;
+  panY = mouseY - (mouseY - panY) * zr;
+  document.getElementById('zoom-indicator').textContent = `scroll to zoom \u00B7 ${zoomLevel.toFixed(1)}x`;
+}, { passive: false });
+
+// Middle-click or shift+drag to pan
+canvas.addEventListener('mousedown', function(e) {
+  if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+    isPanning = true;
+    panStartX = e.clientX; panStartY = e.clientY;
+    panStartPX = panX; panStartPY = panY;
+    e.preventDefault();
+  }
+});
+window.addEventListener('mousemove', function(e) {
+  if (isPanning) {
+    panX = panStartPX + (e.clientX - panStartX);
+    panY = panStartPY + (e.clientY - panStartY);
+  }
+});
+window.addEventListener('mouseup', function(e) { if (e.button === 1 || e.button === 0) isPanning = false; });
 
 // === STRAND POSITION CACHE ===
 const strandPositions = []; // [{x, y, id}] for hit testing
@@ -315,38 +397,43 @@ function getHelixPoint(strandIdx, pointFrac, time) {
   const frac = s.id / TOTAL; // position along axis
   const cx = W / 2;
   const cy = H / 2;
-  const axisLen = W * 0.72;
+  // Base scale: helix fills ~60% of the viewport
+  const axisLen = W * 0.82;
   const startX = cx - axisLen / 2;
 
-  const x = startX + frac * axisLen;
+  let rawX = startX + frac * axisLen;
 
   // Helix radius — envelope shaped like a lens
   const envelope = Math.sin(frac * Math.PI);
-  const baseR = Math.min(H * 0.28, 140);
+  const baseR = Math.min(H * 0.34, 180);
 
   // 3D helix: strand wraps around axis
   const helixTurns = 8;
   const angle = frac * Math.PI * 2 * helixTurns + s.coset * (Math.PI * 2 / 3) + time * 0.6;
-  let y = cy + Math.sin(angle) * baseR * envelope;
+  let rawY = cy + Math.sin(angle) * baseR * envelope;
   const z = Math.cos(angle); // depth [-1, 1]
 
   // Seismic drift perturbation — local warp
   if (Math.abs(s.drift) > 0.12) {
     const driftAmp = s.drift * 120;
     const driftFreq = 3 + Math.abs(s.drift) * 8;
-    y += Math.sin(time * driftFreq + frac * 20) * driftAmp * envelope * 0.4;
+    rawY += Math.sin(time * driftFreq + frac * 20) * driftAmp * envelope * 0.4;
   }
 
   // Void strands dither
   if (s.isVoid) {
-    y += Math.sin(time * 7 + s.id) * 12 * envelope;
+    rawY += Math.sin(time * 7 + s.id) * 12 * envelope;
   }
 
   // Nullcode strands — tighter cluster, different wave
   if (s.isNull) {
     const nullFrac = (s.id - NULL_START) / (NULL_END - NULL_START);
-    y += Math.sin(time * 4 + nullFrac * Math.PI * 6) * 20 * envelope;
+    rawY += Math.sin(time * 4 + nullFrac * Math.PI * 6) * 20 * envelope;
   }
+
+  // Apply zoom + pan
+  const x = (rawX - cx) * zoomLevel + cx + panX;
+  const y = (rawY - cy) * zoomLevel + cy + panY;
 
   return { x, y, z, zone: s.zone, isVoid: s.isVoid, isNull: s.isNull, drift: s.drift, id: s.id };
 }
@@ -355,13 +442,17 @@ function getHelixPoint(strandIdx, pointFrac, time) {
 function drawHelix() {
   const cx = W / 2;
   const cy = H / 2;
-  const axisLen = W * 0.72;
+  const axisLen = W * 0.82;
   const startX = cx - axisLen / 2;
+
+  // Transform helper: apply zoom + pan to axis coordinates
+  function tx(x) { return (x - cx) * zoomLevel + cx + panX; }
+  function ty(y) { return (y - cy) * zoomLevel + cy + panY; }
 
   // Axis line
   ctx.beginPath();
-  ctx.moveTo(startX, cy);
-  ctx.lineTo(startX + axisLen, cy);
+  ctx.moveTo(tx(startX), ty(cy));
+  ctx.lineTo(tx(startX + axisLen), ty(cy));
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
   ctx.stroke();
@@ -371,9 +462,9 @@ function drawHelix() {
   for (const b of zoneBounds) {
     const bx = startX + (b / TOTAL) * axisLen;
     ctx.beginPath();
-    ctx.moveTo(bx, cy - 20);
-    ctx.lineTo(bx, cy + 20);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.moveTo(tx(bx), ty(cy - 20));
+    ctx.lineTo(tx(bx), ty(cy + 20));
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 3]);
     ctx.stroke();
@@ -381,20 +472,20 @@ function drawHelix() {
   }
 
   // Axis ticks every 100 strands
-  for (let i = 0; i <= 7; i++) {
+  for (let i = 0; i <= 8; i++) {
     const tick = i * 100;
     if (tick > TOTAL) break;
-    const tx = startX + (tick / TOTAL) * axisLen;
+    const tickX = startX + (tick / TOTAL) * axisLen;
     ctx.beginPath();
-    ctx.moveTo(tx, cy + 22);
-    ctx.lineTo(tx, cy + 28);
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.moveTo(tx(tickX), ty(cy + 22));
+    ctx.lineTo(tx(tickX), ty(cy + 28));
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.58)';
-    ctx.font = '8px Lekton';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = '9px Lekton';
     ctx.textAlign = 'center';
-    ctx.fillText(tick || '1', tx, cy + 38);
+    ctx.fillText(tick || '1', tx(tickX), ty(cy + 40));
   }
 
   strandPositions.length = 0;
@@ -431,13 +522,13 @@ function drawHelix() {
     const rgb = getZoneColor(s.zone);
     const depthAlpha = 0.45 + (pt.z * 0.5 + 0.5) * 0.55;
 
-    // Base dot
-    let r = 1.5;
+    // Base dot (scaled down ~5%)
+    let r = 1.4;
     let alpha = 0.6 * depthAlpha;
 
     // Ghost strands — flickering tombstones, hollow
     if (s.isGhost) {
-      r = 3 + Math.sin(t * 8 + s.id) * 1.5;
+      r = 2.8 + Math.sin(t * 8 + s.id) * 1.4;
       alpha = 0.15 + Math.abs(Math.sin(t * 6 + s.id * 2)) * 0.3; // flicker
       // Draw as ring (hollow)
       ctx.beginPath();
@@ -449,11 +540,11 @@ function drawHelix() {
     // Structural anchors — solid, sized by weight
     else if (s.isAnchor) {
       const w = s.weight / 22763; // normalize to strand 70
-      r = 2 + w * 5;
+      r = 1.9 + w * 4.75;
       alpha = 0.7 + Math.sin(t * 2 + s.id) * 0.15;
       // Gravitational center gets a persistent glow
       if (s.id === GRAVITY_CENTER) {
-        r = 5 + Math.sin(t * 1.5) * 1.5;
+        r = 4.75 + Math.sin(t * 1.5) * 1.4;
         alpha = 0.9;
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, r + 10, 0, Math.PI * 2);
@@ -467,12 +558,12 @@ function drawHelix() {
     }
     // Nullcode strands — distinct marker
     else if (s.isNull) {
-      r = 2;
+      r = 1.9;
       alpha = 0.7 + Math.sin(t * 2.5 + s.id * 0.3) * 0.15;
     }
     // Terminal event strands — bright pulse
     else if (s.isTerminal) {
-      r = 3;
+      r = 2.85;
       alpha = 0.8 + Math.sin(t * 4) * 0.2;
       const trgb = s.id === TERMINAL.spike ? [244,97,56] : [206,40,103];
       ctx.beginPath();
@@ -483,7 +574,7 @@ function drawHelix() {
 
     // Seismic strands — glow
     if (Math.abs(s.drift) > 0.12) {
-      r = 1.8 + Math.abs(s.drift) * 3;
+      r = 1.7 + Math.abs(s.drift) * 2.85;
       alpha = Math.min(1, 0.6 + Math.abs(s.drift));
       // Glow ring
       ctx.beginPath();
@@ -586,8 +677,8 @@ function drawDriftView() {
   }
 
   // Labels for biggest events
-  ctxDrift.font = '7px Lekton';
-  ctxDrift.fillStyle = 'rgba(255,255,255,0.75)';
+  ctxDrift.font = '8px Lekton';
+  ctxDrift.fillStyle = 'rgba(255,255,255,0.88)';
   const big = SEISMIC.filter(s => Math.abs(s[1]) > 0.3 && s[0] <= visible);
   for (const [sid, drift] of big) {
     const x = (sid / TOTAL) * w;
@@ -818,8 +909,12 @@ document.getElementById('btn-reset').addEventListener('click', () => {
   streaming = true;
   t = 0;
   frame = 0;
+  zoomLevel = 1.0;
+  panX = 0;
+  panY = 0;
   document.getElementById('btn-stream').textContent = 'streaming';
   document.getElementById('btn-stream').classList.add('active');
+  document.getElementById('zoom-indicator').textContent = 'scroll to zoom \u00B7 1.0x';
 });
 
 // === INIT ===
