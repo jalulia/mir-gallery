@@ -213,13 +213,17 @@ function mulberry32(a) {
 }
 const rng = mulberry32(818);
 
-// Prismatic Color Diffusion — IO brand gradient mapped across strand position
+// Prismatic Color Diffusion — IO brand gradient, boosted for halftone rendering
+// Stops are slightly more vivid than the brand spec to compensate for
+// bloom + halftone desaturation at small dot scale
 const GRAD_STOPS = [
-  { t: 0.00, color: new THREE.Color('#CE2867') },  // Pulsewave
-  { t: 0.30, color: new THREE.Color('#F46138') },  // Solar Ember
-  { t: 0.50, color: new THREE.Color('#F4A0A0') },  // Peach midpoint
-  { t: 0.75, color: new THREE.Color('#2C9FF4') },  // Sky Pulse
-  { t: 1.00, color: new THREE.Color('#3D6DF4') }   // Electric Horizon
+  { t: 0.00, color: new THREE.Color('#D83070') },  // Pulsewave (boosted)
+  { t: 0.20, color: new THREE.Color('#F45838') },  // Solar Ember (earlier, punchier)
+  { t: 0.38, color: new THREE.Color('#F4A080') },  // Warm peach
+  { t: 0.52, color: new THREE.Color('#E8B0C0') },  // Pink-peach (the soft middle)
+  { t: 0.68, color: new THREE.Color('#80C0F4') },  // Light sky
+  { t: 0.82, color: new THREE.Color('#40A8F4') },  // Sky Pulse
+  { t: 1.00, color: new THREE.Color('#4870F4') }   // Electric Horizon
 ];
 
 function sampleGradient(t) {
