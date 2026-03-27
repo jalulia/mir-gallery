@@ -1217,7 +1217,7 @@ let selectionMode = false;
 let selectedRefs = new Set();
 let localArtifacts = JSON.parse(localStorage.getItem('mir-local-artifacts') || '[]');
 
-function getAllArtifacts() { return [...ARTIFACTS, ...localArtifacts]; }
+function getAllArtifacts() { return [...ARTIFACTS, ...localArtifacts].reverse(); }
 function saveSelection() { localStorage.setItem('mir-selected-refs', JSON.stringify([...selectedRefs])); }
 function saveLocalArtifacts() {
   const toSave = localArtifacts.map(a =>
