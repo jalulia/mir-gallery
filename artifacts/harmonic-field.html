@@ -818,22 +818,12 @@ function buildStarField(catalog) {
   const brightMat = new THREE.MeshStandardMaterial({ metalness:0.1, roughness:0.3, transparent:true, opacity:1.0 });
   brightMat.onBeforeCompile = function(shader) {
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', 'attribute vec3 instanceColor;
-varying vec3 vIColor;
-attribute float instanceAlpha;
-varying float vIAlpha;
-#include <common>')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>
-vIColor = instanceColor;
-vIAlpha = instanceAlpha;');
+      .replace('#include <common>', 'attribute vec3 instanceColor;\nvarying vec3 vIColor;\nattribute float instanceAlpha;\nvarying float vIAlpha;\n#include <common>')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvIColor = instanceColor;\nvIAlpha = instanceAlpha;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', 'varying vec3 vIColor;
-varying float vIAlpha;
-#include <common>')
-      .replace('#include <color_fragment>', 'diffuseColor.rgb = vIColor;
-#include <color_fragment>')
-      .replace('#include <dithering_fragment>', 'gl_FragColor.a *= vIAlpha;
-#include <dithering_fragment>');
+      .replace('#include <common>', 'varying vec3 vIColor;\nvarying float vIAlpha;\n#include <common>')
+      .replace('#include <color_fragment>', 'diffuseColor.rgb = vIColor;\n#include <color_fragment>')
+      .replace('#include <dithering_fragment>', 'gl_FragColor.a *= vIAlpha;\n#include <dithering_fragment>');
   };
   starMeshBright = new THREE.InstancedMesh(baseGeo, brightMat, brightIndices.length);
   setupInstances(starMeshBright, brightIndices);
@@ -850,16 +840,11 @@ varying float vIAlpha;
   const dimMat = new THREE.MeshStandardMaterial({ metalness:0.0, roughness:0.5, wireframe:true, transparent:true, opacity:0.35 });
   dimMat.onBeforeCompile = function(shader) {
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', 'attribute vec3 instanceColor;
-varying vec3 vIColor;
-#include <common>')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>
-vIColor = instanceColor;');
+      .replace('#include <common>', 'attribute vec3 instanceColor;\nvarying vec3 vIColor;\n#include <common>')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvIColor = instanceColor;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', 'varying vec3 vIColor;
-#include <common>')
-      .replace('#include <color_fragment>', 'diffuseColor.rgb = vIColor;
-#include <color_fragment>');
+      .replace('#include <common>', 'varying vec3 vIColor;\n#include <common>')
+      .replace('#include <color_fragment>', 'diffuseColor.rgb = vIColor;\n#include <color_fragment>');
   };
   starMeshDim = new THREE.InstancedMesh(baseGeo.clone(), dimMat, dimIndices.length);
   setupInstances(starMeshDim, dimIndices);
