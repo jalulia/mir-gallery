@@ -17,11 +17,11 @@ canvas { display: block; }
   letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.6;
 }
 #hud-tl .title { font-size: 13px; font-weight: 700; color: #4af; }
-#hud-tl .sub { color: #aaa; }
+#hud-tl .sub { color: #ccc; }
 
 #hud-tr {
   position: fixed; top: 24px; right: 28px; z-index: 10;
-  color: #ccc; font-family: 'Lekton', monospace; font-size: 11px;
+  color: #ddd; font-family: 'Lekton', monospace; font-size: 11px;
   letter-spacing: 0.06em; text-transform: uppercase;
   text-align: right; line-height: 1.6;
 }
@@ -32,21 +32,21 @@ canvas { display: block; }
 }
 .zs { display: flex; align-items: center; gap: 6px;
   font-family: 'Lekton', monospace; font-size: 10px;
-  color: #bbb; letter-spacing: 0.06em; text-transform: uppercase; }
+  color: #ddd; letter-spacing: 0.06em; text-transform: uppercase; }
 .zs .d { width: 6px; height: 6px; border-radius: 50%; }
 
 #structure-legend {
   position: fixed; bottom: 72px; left: 28px; z-index: 10;
   font-family: 'Lekton', monospace; font-size: 9px;
-  color: #999; letter-spacing: 0.04em; line-height: 1.7;
+  color: #bbb; letter-spacing: 0.04em; line-height: 1.7;
 }
-#structure-legend .sh { font-size: 10px; color: #bbb; text-transform: uppercase;
+#structure-legend .sh { font-size: 10px; color: #ddd; text-transform: uppercase;
   letter-spacing: 0.08em; margin-bottom: 3px; }
 
 #conn-legend {
   position: fixed; bottom: 72px; left: 200px; z-index: 10;
   font-family: 'Lekton', monospace; font-size: 9px;
-  color: #999; letter-spacing: 0.04em; line-height: 1.7;
+  color: #bbb; letter-spacing: 0.04em; line-height: 1.7;
 }
 #conn-legend .sh { font-size: 10px; color: #bbb; text-transform: uppercase;
   letter-spacing: 0.08em; margin-bottom: 3px; }
@@ -213,19 +213,19 @@ function mulberry32(a) {
 }
 const rng = mulberry32(818);
 
-// Zone colors — softened
+// Zone colors — punched up for contrast
 const ZC = {
-  founding: new THREE.Color('#c46e8a'),
-  julia:    new THREE.Color('#c9a070'),
-  nullcode: new THREE.Color('#d0d0d0'),
-  post:     new THREE.Color('#7eaad4')
+  founding: new THREE.Color('#d4728f'),
+  julia:    new THREE.Color('#d4a86e'),
+  nullcode: new THREE.Color('#e0e0e0'),
+  post:     new THREE.Color('#7eb8e0')
 };
 
-// Coset colors — Z₃ visual channels
+// Coset colors — Z₃ visual channels (boosted)
 const CC = [
-  new THREE.Color('#7ec4cf'),  // coset 0 → f147 → teal
-  new THREE.Color('#cf7ea8'),  // coset 1 → f258 → rose
-  new THREE.Color('#cfc47e')   // coset 2 → f369 → gold
+  new THREE.Color('#8ad4df'),  // coset 0 → f147 → teal
+  new THREE.Color('#df8ab8'),  // coset 1 → f258 → rose
+  new THREE.Color('#dfd48a')   // coset 2 → f369 → gold
 ];
 
 function getZone(id) {
@@ -386,7 +386,7 @@ controls.target.set(0, 0, 0);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.6, 0.85);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.35, 0.5, 0.75);
 composer.addPass(bloomPass);
 
 const halftonePass = new HalftonePass(innerWidth, innerHeight, {
@@ -407,7 +407,7 @@ for (let i = 0; i < dustCount; i++) {
 }
 dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
 scene.add(new THREE.Points(dustGeo, new THREE.PointsMaterial({
-  color: 0x8899bb, size: 0.06, transparent: true, opacity: 0.4, sizeAttenuation: true
+  color: 0x99aacc, size: 0.07, transparent: true, opacity: 0.5, sizeAttenuation: true
 })));
 
 // === LIGHTING ===
@@ -418,8 +418,8 @@ scene.add(dLight);
 
 // === TORUS WIREFRAME SHELL ===
 const shellGroup = new THREE.Group();
-const shellMat = new THREE.LineBasicMaterial({ color: 0x445577, transparent: true, opacity: 0.35 });
-const ribMat = new THREE.LineBasicMaterial({ color: 0x445577, transparent: true, opacity: 0.2 });
+const shellMat = new THREE.LineBasicMaterial({ color: 0x5577aa, transparent: true, opacity: 0.45 });
+const ribMat = new THREE.LineBasicMaterial({ color: 0x5577aa, transparent: true, opacity: 0.3 });
 
 // Meridional circles (cross-sections) — 24 around the torus
 for (let m = 0; m < 24; m++) {
@@ -578,7 +578,7 @@ for (let start = 0; start < TOTAL - segLen; start += segLen) {
   const zone = getZone(start + 1);
   // Variegation: founding and post zones are more visible (dominant population)
   // Julia and nullcode are fainter (recessive population)
-  const opacity = (zone === 'founding' || zone === 'post') ? 0.35 : 0.12;
+  const opacity = (zone === 'founding' || zone === 'post') ? 0.5 : 0.2;
   const color = (zone === 'founding' || zone === 'post') ? 0xaa8860 : 0x887755;
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
   chimeraGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
@@ -591,7 +591,7 @@ for (const b of zoneBoundaries) {
   if (b < TOTAL) {
     const geo = new THREE.BufferGeometry().setFromPoints([basePositions[b], chimeraPositions[b]]);
     chimeraGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-      color: 0xaa8860, transparent: true, opacity: 0.5
+      color: 0xccaa70, transparent: true, opacity: 0.65
     })));
   }
 }
@@ -611,7 +611,7 @@ const connGeo = new THREE.BufferGeometry();
 connGeo.setAttribute('position', new THREE.Float32BufferAttribute(connVerts, 3));
 connGeo.setAttribute('color', new THREE.Float32BufferAttribute(connColorArr, 3));
 const connLines = new THREE.LineSegments(connGeo, new THREE.LineBasicMaterial({
-  vertexColors: true, transparent: true, opacity: 0.45
+  vertexColors: true, transparent: true, opacity: 0.6
 }));
 scene.add(connLines);
 
@@ -625,7 +625,7 @@ ncx /= 21; ncy /= 21; ncz /= 21;
 const lissGeo = new THREE.BufferGeometry();
 const lissVerts = new Float32Array(201 * 3);
 const lissLine = new THREE.Line(lissGeo, new THREE.LineBasicMaterial({
-  color: 0xdddddd, transparent: true, opacity: 0.5
+  color: 0xeeeeee, transparent: true, opacity: 0.65
 }));
 scene.add(lissLine);
 
