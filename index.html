@@ -675,8 +675,7 @@ select.workspace-input { font-family: var(--font-mono); font-size: 12px; }
 body.light .breadcrumb { color: var(--mid-gray); }
 
 .card.archived { opacity: 0.35; filter: grayscale(0.5); }
-.archive-btn { position: absolute; top: 6px; right: 6px; z-index: 5; background: none; border: 1px solid #ffffff12; border-radius: 3px; color: #ffffff30; font-size: 8px; padding: 2px 6px; cursor: pointer; font-family: var(--font-mono); display: none; }
-.ref-card:hover .archive-btn, .artifact-card:hover .archive-btn { display: block; }
+.archive-btn { position: absolute; top: 6px; right: 6px; z-index: 5; background: rgba(10,10,10,0.7); border: 1px solid #ffffff18; border-radius: 3px; color: #ffffff40; font-size: 9px; padding: 3px 7px; cursor: pointer; font-family: var(--font-mono); display: block; backdrop-filter: blur(4px); }
 .archive-btn:hover { border-color: var(--se); color: var(--se); }
 .undo-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 100; background: #1A1A1A; border: 1px solid var(--eh); color: var(--off-white); padding: 8px 16px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; display: none; align-items: center; gap: 12px; }
 .undo-toast.visible { display: flex; }
@@ -2030,6 +2029,15 @@ function downloadHtmlDirect(html, name) {
 }
 
 // ─── INIT ───
+// Clean up stale localStorage artifacts (dead entries)
+const stalePatterns = ['ping-pong', 'mir-756', 'lisajous'];
+localArtifacts = localArtifacts.filter(a => {
+  const f = (a.file || '').toLowerCase();
+  const t = (a.title || '').toLowerCase();
+  return !stalePatterns.some(p => f.includes(p) || t.includes(p));
+});
+saveLocalArtifacts();
+
 window.addEventListener('hashchange', handleRoute);
 restoreGeneratedBlobUrls();
 updateApiKeyBtn();
