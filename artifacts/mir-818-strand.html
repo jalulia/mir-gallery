@@ -116,10 +116,10 @@ canvas { display: block; }
 </div>
 
 <div id="zone-legend">
-  <div class="zs"><span class="d" style="background:#c46e8a"></span><span class="zl">founding (1–187)</span></div>
-  <div class="zs"><span class="d" style="background:#c9a070"></span><span class="zl">julia belt (188–641)</span></div>
-  <div class="zs"><span class="d" style="background:#d0d0d0"></span><span class="zl">nullcode bridge (642–662)</span></div>
-  <div class="zs"><span class="d" style="background:#7eaad4"></span><span class="zl">everted (663–818)</span></div>
+  <div class="zs"><span class="d" style="background:#ff4477"></span><span class="zl">founding (1–187)</span></div>
+  <div class="zs"><span class="d" style="background:#ffaa33"></span><span class="zl">julia belt (188–641)</span></div>
+  <div class="zs"><span class="d" style="background:#ffffff"></span><span class="zl">nullcode bridge (642–662)</span></div>
+  <div class="zs"><span class="d" style="background:#33aaff"></span><span class="zl">everted (663–818)</span></div>
 </div>
 
 <div id="structure-legend">
@@ -213,12 +213,12 @@ function mulberry32(a) {
 }
 const rng = mulberry32(818);
 
-// Zone colors — saturated
+// Zone colors — saturated, bright
 const ZC = {
-  founding: new THREE.Color('#e8507a'),
-  julia:    new THREE.Color('#e8a040'),
+  founding: new THREE.Color('#ff4477'),
+  julia:    new THREE.Color('#ffaa33'),
   nullcode: new THREE.Color('#ffffff'),
-  post:     new THREE.Color('#50a0e8')
+  post:     new THREE.Color('#33aaff')
 };
 
 // Coset colors — Z₃ visual channels (saturated)
@@ -527,18 +527,18 @@ for (let start = 0; start < TOTAL - segLen; start += segLen) {
   const opacity = (zone === 'founding' || zone === 'post') ? 0.5 : 0.2;
   const color = (zone === 'founding' || zone === 'post') ? 0xffcc55 : 0xcc9933;
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
-  chimeraGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-    color, transparent: true, opacity
-  })));
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+  line.userData.baseOpacity = opacity;
+  chimeraGroup.add(line);
 }
 // Cross-links between primary and chimera at zone boundaries (variegation sutures)
 const zoneBoundaries = [187, 641, 662];
 for (const b of zoneBoundaries) {
   if (b < TOTAL) {
     const geo = new THREE.BufferGeometry().setFromPoints([basePositions[b], chimeraPositions[b]]);
-    chimeraGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-      color: 0xffdd66, transparent: true, opacity: 0.7
-    })));
+    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffdd66, transparent: true, opacity: 0.7 }));
+    line.userData.baseOpacity = 0.7;
+    chimeraGroup.add(line);
   }
 }
 scene.add(chimeraGroup);
@@ -652,14 +652,14 @@ document.getElementById('btn-coset').addEventListener('click', function() {
   const dots = document.querySelectorAll('.zs .d');
   const labels = document.querySelectorAll('.zs .zl');
   if (useCosetColor) {
-    dots[0].style.background = '#7ec4cf'; labels[0].textContent = 'coset 0 — f147 (teal)';
-    dots[1].style.background = '#cf7ea8'; labels[1].textContent = 'coset 1 — f258 (rose)';
-    dots[2].style.background = '#cfc47e'; labels[2].textContent = 'coset 2 — f369 (gold)';
+    dots[0].style.background = '#40e0d0'; labels[0].textContent = 'coset 0 — f147 (teal)';
+    dots[1].style.background = '#e040a0'; labels[1].textContent = 'coset 1 — f258 (rose)';
+    dots[2].style.background = '#e0d040'; labels[2].textContent = 'coset 2 — f369 (gold)';
     dots[3].style.display = 'none'; labels[3].parentElement.style.display = 'none';
   } else {
-    dots[0].style.background = '#c46e8a'; labels[0].textContent = 'founding (1–187)';
-    dots[1].style.background = '#c9a070'; labels[1].textContent = 'julia belt (188–641)';
-    dots[2].style.background = '#d0d0d0'; labels[2].textContent = 'nullcode bridge (642–662)';
+    dots[0].style.background = '#ff4477'; labels[0].textContent = 'founding (1–187)';
+    dots[1].style.background = '#ffaa33'; labels[1].textContent = 'julia belt (188–641)';
+    dots[2].style.background = '#ffffff'; labels[2].textContent = 'nullcode bridge (642–662)';
     dots[3].parentElement.style.display = ''; labels[3].textContent = 'everted (663–818)';
   }
   setStrandColors();
@@ -722,6 +722,7 @@ function drawLissVP() {
 const raycaster = new THREE.Raycaster();
 raycaster.params.Points.threshold = 0.3;
 const mouse = new THREE.Vector2();
+let hoveringNull = false;  // true when hovering a nullcode strand
 
 renderer.domElement.addEventListener('mousemove', (e) => {
   mouse.x = (e.clientX / innerWidth) * 2 - 1;
@@ -735,9 +736,10 @@ function updateTooltip() {
 
   if (hits.length > 0 && hits[0].index !== undefined) {
     const idx = hits[0].index;
-    if (strandAlphas[idx] < 0.1) { tt.style.display = 'none'; return; }
+    if (strandAlphas[idx] < 0.1) { tt.style.display = 'none'; hoveringNull = false; return; }
     const s = strandData[idx];
     tt.style.display = 'block';
+    hoveringNull = s.isNull;
 
     const screenPos = new THREE.Vector3(
       strandPositions[idx*3], strandPositions[idx*3+1], strandPositions[idx*3+2]
@@ -759,6 +761,7 @@ function updateTooltip() {
     document.getElementById('hz').textContent = `hovering: strand ${s.id} / ${s.zone}`;
   } else {
     tt.style.display = 'none';
+    hoveringNull = false;
     document.getElementById('hz').textContent = '';
   }
 }
@@ -835,7 +838,9 @@ function animate() {
     strandPositions[i*3] = px;
     strandPositions[i*3+1] = py;
     strandPositions[i*3+2] = pz;
-    strandAlphas[i] = i < visible ? 1.0 : 0.0;
+    // Dim non-nullcode strands when hovering a nullcode
+    const baseAlpha = i < visible ? 1.0 : 0.0;
+    strandAlphas[i] = (hoveringNull && !strandData[i].isNull) ? baseAlpha * 0.2 : baseAlpha;
   }
 
   strandGeo.attributes.position.needsUpdate = true;
@@ -867,6 +872,8 @@ function animate() {
     }
   }
   connLines.geometry.attributes.position.needsUpdate = true;
+  connLines.material.opacity = hoveringNull ? 0.15 : 0.6;
+  chimeraGroup.children.forEach(c => { c.material.opacity = hoveringNull ? 0.05 : c.userData.baseOpacity || 0.35; });
 
   // Update chimera positions with eversion
   const chimeraChildren = chimeraGroup.children;
