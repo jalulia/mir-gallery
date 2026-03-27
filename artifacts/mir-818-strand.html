@@ -416,60 +416,6 @@ const dLight = new THREE.DirectionalLight(0xffffff, 0.3);
 dLight.position.set(3, 5, 2);
 scene.add(dLight);
 
-// === TORUS WIREFRAME SHELL ===
-const shellGroup = new THREE.Group();
-const shellMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 });
-const ribMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
-
-// Meridional circles (cross-sections) — 24 around the torus
-for (let m = 0; m < 24; m++) {
-  const u = (m / 24) * Math.PI * 2;
-  // Determine local minor radius based on which zone this meridian falls in
-  const t_approx = (u / (Math.PI * 2 * WRAPS));
-  const id_approx = Math.floor(t_approx * TOTAL) + 1;
-  const zone = getZone(Math.min(Math.max(id_approx, 1), TOTAL));
-  let r = MINOR_R * 1.15;
-  if (zone === 'nullcode') r *= 0.55;
-  if (zone === 'post') r *= 1.08;
-
-  const pts = [];
-  for (let s = 0; s <= 32; s++) {
-    const v = (s / 32) * Math.PI * 2;
-    pts.push(new THREE.Vector3(
-      (MAJOR_R + r * Math.cos(v)) * Math.cos(u),
-      r * Math.sin(v),
-      (MAJOR_R + r * Math.cos(v)) * Math.sin(u)
-    ));
-  }
-  shellGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), shellMat));
-}
-
-// Longitudinal lines — 8 around the tube
-for (let l = 0; l < 8; l++) {
-  const v = (l / 8) * Math.PI * 2;
-  const pts = [];
-  for (let s = 0; s <= 96; s++) {
-    const u = (s / 96) * Math.PI * 2;
-    // Approximate zone for this u position
-    for (let w = 0; w < WRAPS; w++) {
-      // just use base minor radius for shell
-    }
-    const t_approx = Math.min(1, (u / (Math.PI * 2 * WRAPS)) * WRAPS);
-    const id_approx = Math.floor(t_approx * TOTAL / WRAPS) + 1;
-    const zone = getZone(Math.min(Math.max(id_approx, 1), TOTAL));
-    let r = MINOR_R * 1.15;
-    if (zone === 'nullcode') r *= 0.55;
-    if (zone === 'post') r *= 1.08;
-
-    pts.push(new THREE.Vector3(
-      (MAJOR_R + r * Math.cos(v)) * Math.cos(u),
-      r * Math.sin(v),
-      (MAJOR_R + r * Math.cos(v)) * Math.sin(u)
-    ));
-  }
-  shellGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), ribMat));
-}
-scene.add(shellGroup);
 
 // === STRAND POINTS ===
 const strandGeo = new THREE.BufferGeometry();
