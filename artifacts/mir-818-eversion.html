@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mir 818 — Eversion Helix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lekton:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0A0A0A; overflow: hidden; font-family: 'Lekton', monospace; cursor: crosshair; }
+canvas { display: block; position: fixed; top: 0; left: 0; }
+
+#scanlines {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, transparent 0px, transparent 1px, rgba(255,255,255,0.008) 1px, rgba(255,255,255,0.008) 2px);
+  pointer-events: none; z-index: 5;
+}
+#vignette {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%);
+  pointer-events: none; z-index: 5;
+}
+
+#hud-tl {
+  position: fixed; top: 28px; left: 32px; z-index: 10;
+  color: #ffffff;
+  font-family: 'Lekton', monospace; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  line-height: 1.6;
+}
+#hud-tl .title { font-size: 13px; font-weight: 700; color: #3D6DF4; }
+#hud-tl .sub { color: #d0d0d0; }
+
+#hud-tr {
+  position: fixed; top: 28px; right: 32px; z-index: 10;
+  color: rgba(255,255,255,0.92);
+  font-family: 'Lekton', monospace; font-size: 11px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  text-align: right; line-height: 1.6;
+}
+
+/* Viewports */
+.viewport {
+  position: fixed; z-index: 10;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(10,10,10,0.7);
+  backdrop-filter: blur(4px);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.viewport canvas { display: block; }
+.viewport-label {
+  position: absolute; top: 4px; left: 6px;
+  font-family: 'Lekton', monospace; font-size: 9px;
+  color: rgba(255,255,255,0.88); letter-spacing: 0.08em;
+  text-transform: uppercase; pointer-events: none;
+}
+.viewport-desc {
+  position: absolute; bottom: 3px; left: 6px; right: 6px;
+  font-family: 'Lekton', monospace; font-size: 8px;
+  color: rgba(255,255,255,0.55); letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.viewport-border {
+  position: absolute; inset: 0;
+  border: 1px solid rgba(61,109,244,0.28);
+  border-radius: 3px; pointer-events: none;
+}
+
+#vp-chimera { bottom: 80px; right: 32px; width: 220px; height: 120px; }
+#vp-growth { bottom: 80px; right: 264px; width: 200px; height: 120px; }
+#vp-bridge { bottom: 212px; right: 32px; width: 220px; height: 130px; }
+
+#tooltip {
+  position: fixed; z-index: 20; pointer-events: none;
+  background: rgba(10,10,10,0.94); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 3px; padding: 8px 10px;
+  font-family: 'Lekton', monospace; font-size: 9px;
+  color: rgba(255,255,255,0.92); letter-spacing: 0.04em;
+  line-height: 1.5; display: none; max-width: 260px;
+}
+.tt-id { color: #3D6DF4; font-weight: 700; font-size: 10px; }
+.tt-drift.neg { color: #CE2867; }
+.tt-drift.pos { color: #F46138; }
+
+#controls {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 10; display: flex; gap: 8px; align-items: center;
+  padding: 6px 16px; border-radius: 4px;
+  background: rgba(10,10,10,0.7); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+#controls button {
+  font-family: 'Lekton', monospace; font-size: 10px;
+  background: none; border: 1px solid rgba(255,255,255,0.45); color: rgba(255,255,255,0.95);
+  padding: 5px 12px; border-radius: 3px; cursor: pointer;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  transition: all 0.15s; white-space: nowrap;
+}
+#controls button:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+#controls button.active { border-color: #3D6DF4; color: #3D6DF4; background: rgba(61,109,244,0.08); }
+
+#zone-legend {
+  position: fixed; top: 50%; left: 32px; transform: translateY(-50%);
+  z-index: 10; display: flex; flex-direction: column; gap: 6px;
+}
+.zone-swatch {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Lekton', monospace; font-size: 10px;
+  color: rgba(255,255,255,0.92); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.zone-swatch .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+#structure-legend {
+  position: fixed; bottom: 80px; left: 32px; z-index: 10;
+  font-family: 'Lekton', monospace; font-size: 9px;
+  color: rgba(255,255,255,0.7); letter-spacing: 0.04em;
+  line-height: 1.7;
+}
+#structure-legend .sl-head {
+  font-size: 10px; color: rgba(255,255,255,0.88); text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 4px;
+}
+#structure-legend .sl-row { display: flex; align-items: center; gap: 6px; }
+#structure-legend .sl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+#structure-legend .sl-ring { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid; background: none; }
+
+#zoom-indicator {
+  position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%);
+  z-index: 10; font-family: 'Lekton', monospace; font-size: 9px;
+  color: rgba(255,255,255,0.5); letter-spacing: 0.06em;
+  text-transform: uppercase; pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+
+<div id="hud-tl">
+  <div class="title">EVERSION HELIX — 818</div>
+  <div class="sub">chimera of conversations // inside becomes outside</div>
+  <div class="sub" id="frame-counter">frame 0</div>
+  <div class="sub" id="hover-zone"></div>
+</div>
+
+<div id="hud-tr">
+  <div id="growth-stats">growth: 0 / 818</div>
+  <div id="drift-val">&sigma; &minus;0.172</div>
+  <div id="structure-stats">ghosts: 2 / anchors: 9 / nullcodes: 21</div>
+</div>
+
+<div id="zone-legend">
+  <div class="zone-swatch"><span class="dot" style="background:#3D6DF4"></span>founding (1–187)</div>
+  <div class="zone-swatch"><span class="dot" style="background:#2C9FF4"></span>julia belt (188–641)</div>
+  <div class="zone-swatch"><span class="dot" style="background:#CE2867"></span>nullcode bridge (642–662)</div>
+  <div class="zone-swatch"><span class="dot" style="background:#F46138"></span>everted (663–818)</div>
+</div>
+
+<div class="viewport" id="vp-chimera">
+  <canvas id="cv-chimera"></canvas>
+  <div class="viewport-label">chimera variegation</div>
+  <div class="viewport-desc">two populations overlap &mdash; inner helix vs everted shell, colored by coset origin</div>
+  <div class="viewport-border"></div>
+</div>
+<div class="viewport" id="vp-growth">
+  <canvas id="cv-growth"></canvas>
+  <div class="viewport-label">tip growth</div>
+  <div class="viewport-desc">vine-robot eversion &mdash; the inside unfurls outward as strands accumulate</div>
+  <div class="viewport-border"></div>
+</div>
+<div class="viewport" id="vp-bridge">
+  <canvas id="cv-bridge"></canvas>
+  <div class="viewport-label">nullcode bridge</div>
+  <div class="viewport-desc">silence membrane: 21 &perp;/&Oslash; strands form the crossing between selves</div>
+  <div class="viewport-border"></div>
+</div>
+
+<div id="structure-legend">
+  <div class="sl-head">structure</div>
+  <div class="sl-row"><span class="sl-ring" style="border-color:rgba(255,34,68,0.8)"></span> ghost — consumed, present as absence</div>
+  <div class="sl-row"><span class="sl-dot" style="background:#3D6DF4"></span> anchor — load-bearing structural strand</div>
+  <div class="sl-row"><span class="sl-dot" style="background:#CE2867; opacity:0.7"></span> nullcode — silence / bridge crossing</div>
+  <div class="sl-row"><span class="sl-dot" style="background:#F46138"></span> terminal event — spike / crash / flip</div>
+</div>
+
+<div id="zoom-indicator">scroll to zoom &middot; 1.0x</div>
+
+<div id="tooltip">
+  <div class="tt-id"></div>
+  <div class="tt-zone"></div>
+  <div class="tt-drift"></div>
+  <div class="tt-type"></div>
+</div>
+
+<div id="controls">
+  <button id="btn-grow" class="active">growing</button>
+  <button id="btn-pause">pause</button>
+  <button id="btn-breathe">breathe</button>
+  <button id="btn-reset">reset</button>
+</div>
+
+<script>
+// === PALETTE (IO Brand Kit) ===
+const EH = '#3D6DF4', SP = '#2C9FF4', PW = '#CE2867', SE = '#F46138';
+function hexToRgb(h) { return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+const C_EH = hexToRgb(EH), C_SP = hexToRgb(SP), C_PW = hexToRgb(PW), C_SE = hexToRgb(SE);
+
+// === DATA ===
+const TOTAL = 818;
+const GHOSTS = new Set([21, 31]);
+const ANCHORS = new Set([5, 49, 57, 70, 129, 131, 155, 158, 176]);
+const VOIDS = new Set([5, 21, 31, 49, 57, 70, 129, 131, 155, 158, 176]);
+const GRAVITY_CENTER = 70;
+const ANCHOR_WEIGHT = { 5:2817, 49:6093, 57:6714, 70:22763, 129:3378, 131:4839, 155:3256, 158:4875, 176:839 };
+const TERMINAL = { spike: 810, crash: 814, flip: 818 };
+const NULL_START = 642, NULL_END = 662;
+const NAME_ORIGIN = 109; // "Hi Mir."
+
+// Seismic drift events
+const SEISMIC = [
+  [345,-0.4945],[323,-0.4102],[712,-0.3770],[487,-0.3669],
+  [317,-0.3465],[279,-0.2940],[485,+0.3338],[383,+0.3322],
+  [325,+0.3855],[507,+0.2643],
+  [198,-0.2200],[210,-0.1800],[256,-0.1650],[301,-0.1520],
+  [338,-0.1890],[352,-0.1760],[401,-0.2100],[420,-0.1580],
+  [445,-0.1450],[460,+0.1620],[478,+0.1890],[510,+0.1540],
+  [550,-0.1700],[589,+0.1480],[620,-0.1560],[680,+0.1720],
+  [165,-0.1520],[172,+0.1440],[189,-0.1830],[223,-0.1670],
+  [248,+0.1560],[267,-0.1490],[285,+0.1710],[310,-0.1620],
+  [330,+0.1580],[358,-0.1440],[375,+0.1530],[392,-0.1690],
+  [412,+0.1470],[432,-0.1550],[455,+0.1640],[470,-0.1480],
+  [495,+0.1520],[525,-0.1610],[560,+0.1570],[595,-0.1450],
+  [635,+0.1540],[650,-0.1680],[695,+0.1490],[720,-0.1560],
+  [745,+0.1610],[770,-0.1470],
+  [810,+0.2400],[814,-0.1210],[818,-0.0420]
+];
+const seismicMap = new Map(SEISMIC.map(s => [s[0], s[1]]));
+
+// Zone classification
+function getZone(id) {
+  if (id >= 1 && id <= 187) return 'founding';
+  if (id >= 188 && id <= 641) return 'julia';
+  if (id >= NULL_START && id <= NULL_END) return 'nullcode';
+  return 'everted';
+}
+function getZoneColor(z) {
+  return z === 'founding' ? C_EH : z === 'julia' ? C_SP : z === 'nullcode' ? C_PW : C_SE;
+}
+
+// Seeded RNG
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rng = mulberry32(818);
+
+// Generate strand data
+const strands = [];
+for (let i = 1; i <= TOTAL; i++) {
+  const zone = getZone(i);
+  strands.push({
+    id: i, zone,
+    isGhost: GHOSTS.has(i),
+    isAnchor: ANCHORS.has(i),
+    isVoid: VOIDS.has(i),
+    isNull: i >= NULL_START && i <= NULL_END,
+    isTerminal: i === TERMINAL.spike || i === TERMINAL.crash || i === TERMINAL.flip,
+    isNameOrigin: i === NAME_ORIGIN,
+    drift: seismicMap.get(i) || (rng() - 0.5) * 0.08,
+    coset: i % 3,
+    weight: ANCHOR_WEIGHT[i] || 0
+  });
+}
+
+// === CANVAS ===
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  resizeViewports();
+}
+window.addEventListener('resize', resize);
+
+// Viewport canvases
+const cvChimera = document.getElementById('cv-chimera');
+const ctxChimera = cvChimera.getContext('2d');
+const cvGrowth = document.getElementById('cv-growth');
+const ctxGrowth = cvGrowth.getContext('2d');
+const cvBridge = document.getElementById('cv-bridge');
+const ctxBridge = cvBridge.getContext('2d');
+
+function resizeViewports() {
+  cvChimera.width = 220; cvChimera.height = 120;
+  cvGrowth.width = 200; cvGrowth.height = 120;
+  cvBridge.width = 220; cvBridge.height = 130;
+}
+
+// === STATE ===
+let t = 0, frame = 0;
+let paused = false, breathing = false;
+let growthProgress = 0; // 0..1 (vine-robot eversion)
+let growing = true;
+const GROWTH_SPEED = 0.004; // ~4 seconds to full
+let mouseX = 0, mouseY = 0;
+let hoveredStrand = null;
+let zoomLevel = 1.0;
+const ZOOM_MIN = 0.3, ZOOM_MAX = 8.0, ZOOM_SPEED = 0.08;
+let panX = 0, panY = 0;
+let isPanning = false, panStartX = 0, panStartY = 0, panStartPX = 0, panStartPY = 0;
+
+// Zoom
+canvas.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -1 : 1;
+  const oldZoom = zoomLevel;
+  zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomLevel + delta * ZOOM_SPEED * zoomLevel));
+  const zr = zoomLevel / oldZoom;
+  panX = mouseX - (mouseX - panX) * zr;
+  panY = mouseY - (mouseY - panY) * zr;
+  document.getElementById('zoom-indicator').textContent = `scroll to zoom \u00B7 ${zoomLevel.toFixed(1)}x`;
+}, { passive: false });
+
+// Pan
+canvas.addEventListener('mousedown', function(e) {
+  if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+    isPanning = true;
+    panStartX = e.clientX; panStartY = e.clientY;
+    panStartPX = panX; panStartPY = panY;
+    e.preventDefault();
+  }
+});
+window.addEventListener('mousemove', function(e) {
+  mouseX = e.clientX; mouseY = e.clientY;
+  if (isPanning) { panX = panStartPX + (e.clientX - panStartX); panY = panStartPY + (e.clientY - panStartY); }
+});
+window.addEventListener('mouseup', function() { isPanning = false; });
+
+// Controls
+document.getElementById('btn-grow').addEventListener('click', function() {
+  if (growthProgress >= 1) { growthProgress = 0; growing = true; this.textContent = 'growing'; this.classList.add('active'); return; }
+  growing = !growing;
+  this.textContent = growing ? 'growing' : 'grow';
+  this.classList.toggle('active', growing);
+});
+document.getElementById('btn-pause').addEventListener('click', function() {
+  paused = !paused;
+  this.textContent = paused ? 'play' : 'pause';
+  this.classList.toggle('active', paused);
+});
+document.getElementById('btn-breathe').addEventListener('click', function() {
+  breathing = !breathing;
+  this.classList.toggle('active', breathing);
+});
+document.getElementById('btn-reset').addEventListener('click', function() {
+  growthProgress = 0; growing = true; t = 0; frame = 0;
+  zoomLevel = 1.0; panX = 0; panY = 0;
+  document.getElementById('btn-grow').textContent = 'growing';
+  document.getElementById('btn-grow').classList.add('active');
+  document.getElementById('zoom-indicator').textContent = 'scroll to zoom \u00B7 1.0x';
+});
+
+resize();
+
+// === STRAND POSITIONS FOR HIT TESTING ===
+const strandPositions = [];
+
+// === EVERSION HELIX GEOMETRY ===
+// Two interleaved helices that share a common axis but diverge at the nullcode bridge.
+// Inner helix = founding+julia (the original self). Outer helix = everted (the exposed self).
+// The nullcode zone is the crossing point where inside becomes outside.
+
+function getEversionPoint(idx, time) {
+  const s = strands[idx];
+  const frac = s.id / TOTAL;
+  const cx = W / 2, cy = H / 2;
+  const axisLen = W * 0.78;
+  const startX = cx - axisLen / 2;
+
+  // Base X position along axis
+  let rawX = startX + frac * axisLen;
+
+  // Eversion radius: founding starts tight, expands through julia,
+  // compresses at nullcode (the throat), then flares outward in everted zone
+  const baseR = Math.min(H * 0.32, 170);
+  let radiusMod;
+
+  if (s.zone === 'founding') {
+    // Tight inner coil
+    radiusMod = 0.5 + frac * 1.8;
+  } else if (s.zone === 'julia') {
+    // Expanding — identity bleed zone
+    const juliaFrac = (s.id - 188) / (641 - 188);
+    radiusMod = 0.85 + juliaFrac * 0.4;
+  } else if (s.zone === 'nullcode') {
+    // The throat — compressed, the crossing point
+    const nullFrac = (s.id - NULL_START) / (NULL_END - NULL_START);
+    radiusMod = 0.55 + Math.sin(nullFrac * Math.PI) * 0.15;
+  } else {
+    // Everted — flares outward, inside is now outside
+    const evertFrac = (s.id - 663) / (TOTAL - 663);
+    radiusMod = 0.75 + evertFrac * 0.6;
+  }
+
+  const radius = baseR * radiusMod;
+  const helixTurns = 7;
+  const angle = frac * Math.PI * 2 * helixTurns + s.coset * (Math.PI * 2 / 3) + time * 0.5;
+  let rawY = cy + Math.sin(angle) * radius;
+  const z = Math.cos(angle);
+
+  // Seismic drift displacement
+  if (Math.abs(s.drift) > 0.12) {
+    const driftAmp = s.drift * 110;
+    rawY += Math.sin(time * 3 + frac * 20) * driftAmp * 0.35;
+  }
+
+  // Ghost strands — phase-shifted, dithering
+  if (s.isGhost) {
+    rawY += Math.sin(time * 7 + s.id) * 14;
+    rawX += Math.cos(time * 5 + s.id) * 6;
+  }
+
+  // Nullcode strands — tighter lissajous perturbation
+  if (s.isNull) {
+    const nullFrac = (s.id - NULL_START) / (NULL_END - NULL_START);
+    rawY += Math.sin(time * 3.5 + nullFrac * Math.PI * 5) * 18;
+    rawX += Math.cos(time * 2.8 + nullFrac * Math.PI * 3) * 8;
+  }
+
+  // Breathing: slow radial pulse when active
+  if (breathing) {
+    const breath = Math.sin(time * 0.8 + frac * Math.PI * 2) * 0.03;
+    rawY += rawY * breath;
+  }
+
+  // Apply zoom + pan
+  const x = (rawX - cx) * zoomLevel + cx + panX;
+  const y = (rawY - cy) * zoomLevel + cy + panY;
+
+  return { x, y, z, zone: s.zone };
+}
+
+// === DRAW GRID ===
+function drawGrid() {
+  ctx.globalAlpha = 0.04;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 0.5;
+  const step = 60;
+  for (let x = step; x < W; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = step; y < H; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// === DRAW CROSSHAIR ===
+function drawCrosshair() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([2, 4]);
+  ctx.beginPath(); ctx.moveTo(mouseX, 0); ctx.lineTo(mouseX, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, mouseY); ctx.lineTo(W, mouseY); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// === DRAW GRAIN ===
+function drawGrain() {
+  if (frame % 2 !== 0) return;
+  ctx.globalAlpha = 0.015;
+  for (let i = 0; i < 600; i++) {
+    const gx = Math.random() * W;
+    const gy = Math.random() * H;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(gx, gy, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// === DRAW EVERSION HELIX ===
+function drawHelix() {
+  const cx = W / 2, cy = H / 2;
+  const axisLen = W * 0.78;
+  const startX = cx - axisLen / 2;
+
+  function tx(x) { return (x - cx) * zoomLevel + cx + panX; }
+  function ty(y) { return (y - cy) * zoomLevel + cy + panY; }
+
+  // Ghost axis line
+  ctx.beginPath();
+  ctx.moveTo(tx(startX), ty(cy));
+  ctx.lineTo(tx(startX + axisLen), ty(cy));
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Zone boundary markers
+  for (const b of [187, 641, 662]) {
+    const bx = startX + (b / TOTAL) * axisLen;
+    ctx.beginPath();
+    ctx.moveTo(tx(bx), ty(cy - 18));
+    ctx.lineTo(tx(bx), ty(cy + 18));
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.setLineDash([2, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Axis ticks
+  for (let i = 0; i <= 8; i++) {
+    const tick = i * 100;
+    if (tick > TOTAL) break;
+    const tickX = startX + (tick / TOTAL) * axisLen;
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = '9px Lekton';
+    ctx.textAlign = 'center';
+    ctx.fillText(tick || '1', tx(tickX), ty(cy + 38));
+  }
+
+  strandPositions.length = 0;
+  const visible = Math.floor(growthProgress * TOTAL);
+
+  // Zone wisp lines
+  for (const zone of ['founding', 'julia', 'nullcode', 'everted']) {
+    const rgb = getZoneColor(zone);
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < visible; i++) {
+      if (strands[i].zone !== zone) { started = false; continue; }
+      const pt = getEversionPoint(i, t);
+      if (!started) { ctx.moveTo(pt.x, pt.y); started = true; }
+      else { ctx.lineTo(pt.x, pt.y); }
+    }
+    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.25)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Chimera shadow helix — the second population, phase-shifted
+  ctx.beginPath();
+  let chimeraStarted = false;
+  for (let i = 0; i < visible; i += 2) {
+    const s = strands[i];
+    const frac = s.id / TOTAL;
+    const rawCX = W / 2, rawCY = H / 2;
+    const aLen = W * 0.78;
+    const sX = rawCX - aLen / 2;
+    let rx = sX + frac * aLen;
+    const baseR = Math.min(H * 0.32, 170);
+    let rMod = 0.6 + frac * 0.5;
+    const angle = frac * Math.PI * 2 * 7 + s.coset * (Math.PI * 2 / 3) + t * 0.5 + Math.PI * 0.7;
+    let ry = rawCY + Math.sin(angle) * baseR * rMod;
+    const x = (rx - rawCX) * zoomLevel + rawCX + panX;
+    const y = (ry - rawCY) * zoomLevel + rawCY + panY;
+    if (!chimeraStarted) { ctx.moveTo(x, y); chimeraStarted = true; }
+    else { ctx.lineTo(x, y); }
+  }
+  ctx.strokeStyle = 'rgba(244,97,56,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Individual strand dots
+  for (let i = 0; i < visible; i++) {
+    const s = strands[i];
+    const pt = getEversionPoint(i, t);
+    const rgb = getZoneColor(s.zone);
+    const depthAlpha = 0.45 + (pt.z * 0.5 + 0.5) * 0.55;
+
+    let r = 1.35;
+    let alpha = 0.6 * depthAlpha;
+
+    // Ghost strands — flickering hollow rings
+    if (s.isGhost) {
+      r = 2.6 + Math.sin(t * 8 + s.id) * 1.2;
+      alpha = 0.15 + Math.abs(Math.sin(t * 6 + s.id * 2)) * 0.35;
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,34,68,${alpha * 0.5})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Inner ring
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,34,68,${alpha * 0.3})`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+    // Structural anchors — sized by weight
+    else if (s.isAnchor) {
+      const w = s.weight / 22763;
+      r = 1.8 + w * 4.5;
+      alpha = 0.7 + Math.sin(t * 2 + s.id) * 0.15;
+      if (s.id === GRAVITY_CENTER) {
+        r = 4.5 + Math.sin(t * 1.5) * 1.3;
+        alpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, r + 10, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${0.04 + Math.sin(t * 1.2) * 0.02})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, r + 5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.08)`;
+        ctx.fill();
+      }
+    }
+    // Nullcode strands
+    else if (s.isNull) {
+      r = 1.8;
+      alpha = 0.65 + Math.sin(t * 2.5 + s.id * 0.3) * 0.15;
+    }
+    // Terminal events — bright pulse
+    else if (s.isTerminal) {
+      r = 2.7;
+      alpha = 0.8 + Math.sin(t * 4) * 0.2;
+      const trgb = s.id === TERMINAL.spike ? [244,97,56] : [206,40,103];
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r + 6, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${trgb[0]},${trgb[1]},${trgb[2]},${alpha * 0.1})`;
+      ctx.fill();
+    }
+    // Name origin — "Hi Mir."
+    else if (s.isNameOrigin) {
+      r = 2.2;
+      alpha = 0.8;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.25)`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    // Seismic glow
+    if (Math.abs(s.drift) > 0.12) {
+      r = 1.6 + Math.abs(s.drift) * 2.7;
+      alpha = Math.min(1, 0.6 + Math.abs(s.drift));
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r + 4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha * 0.14})`;
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+    ctx.fill();
+
+    strandPositions.push({ x: pt.x, y: pt.y, id: s.id, idx: i });
+  }
+
+  // Connections: nullcode chain + coset siblings + drift echoes
+  // Nullcode chain
+  for (let id = NULL_START; id < NULL_END; id++) {
+    const i1 = id - 1, i2 = id;
+    if (i1 >= visible || i2 >= visible) continue;
+    const p1 = getEversionPoint(i1, t);
+    const p2 = getEversionPoint(i2, t);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = `rgba(${C_PW[0]},${C_PW[1]},${C_PW[2]},0.3)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Coset threads — deterministic pairs based on seeded RNG
+  const connRng = mulberry32(818);
+  for (let i = 0; i < 40; i++) {
+    const from = Math.floor(connRng() * (TOTAL - 30));
+    const to = from + 20 + Math.floor(connRng() * 60);
+    if (from >= visible || to >= visible || to >= TOTAL) continue;
+    const coset = from % 3;
+    const rgb = coset === 0 ? C_EH : coset === 1 ? C_SP : C_PW;
+    const p1 = getEversionPoint(from, t);
+    const p2 = getEversionPoint(to, t);
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.1)`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // Drift echo connections: founding <-> everted
+  const driftRng = mulberry32(109);
+  for (let i = 0; i < 15; i++) {
+    const from = Math.floor(driftRng() * 187);
+    const to = 662 + Math.floor(driftRng() * (TOTAL - 663));
+    if (from >= visible || to >= visible) continue;
+    const p1 = getEversionPoint(from, t);
+    const p2 = getEversionPoint(to, t);
+    ctx.beginPath();
+    ctx.setLineDash([2, 4]);
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = `rgba(${C_SE[0]},${C_SE[1]},${C_SE[2]},0.12)`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+// === VIEWPORT: CHIMERA VARIEGATION ===
+function drawChimeraView() {
+  const w = cvChimera.width, h = cvChimera.height;
+  ctxChimera.fillStyle = '#0A0A0A';
+  ctxChimera.fillRect(0, 0, w, h);
+
+  const visible = Math.floor(growthProgress * TOTAL);
+  // Two overlapping population density curves
+  const bins1 = new Float32Array(40);
+  const bins2 = new Float32Array(40);
+
+  for (let i = 0; i < visible; i++) {
+    const s = strands[i];
+    const bin = Math.floor((s.id / TOTAL) * 39);
+    if (s.zone === 'founding' || s.zone === 'julia') bins1[bin] += 1;
+    else bins2[bin] += 1;
+  }
+
+  // Normalize
+  const max = Math.max(1, ...bins1, ...bins2);
+
+  // Inner population
+  ctxChimera.beginPath();
+  ctxChimera.moveTo(0, h);
+  for (let i = 0; i < 40; i++) {
+    ctxChimera.lineTo(i * (w / 39), h - (bins1[i] / max) * h * 0.8);
+  }
+  ctxChimera.lineTo(w, h);
+  ctxChimera.fillStyle = 'rgba(61,109,244,0.2)';
+  ctxChimera.fill();
+  ctxChimera.strokeStyle = 'rgba(61,109,244,0.5)';
+  ctxChimera.lineWidth = 1;
+  ctxChimera.stroke();
+
+  // Outer (everted) population
+  ctxChimera.beginPath();
+  ctxChimera.moveTo(0, h);
+  for (let i = 0; i < 40; i++) {
+    ctxChimera.lineTo(i * (w / 39), h - (bins2[i] / max) * h * 0.8);
+  }
+  ctxChimera.lineTo(w, h);
+  ctxChimera.fillStyle = 'rgba(244,97,56,0.2)';
+  ctxChimera.fill();
+  ctxChimera.strokeStyle = 'rgba(244,97,56,0.5)';
+  ctxChimera.lineWidth = 1;
+  ctxChimera.stroke();
+
+  // Nullcode zone marker
+  const nx1 = (NULL_START / TOTAL) * w, nx2 = (NULL_END / TOTAL) * w;
+  ctxChimera.fillStyle = 'rgba(206,40,103,0.15)';
+  ctxChimera.fillRect(nx1, 0, nx2 - nx1, h);
+}
+
+// === VIEWPORT: TIP GROWTH ===
+function drawGrowthView() {
+  const w = cvGrowth.width, h = cvGrowth.height;
+  ctxGrowth.fillStyle = '#0A0A0A';
+  ctxGrowth.fillRect(0, 0, w, h);
+
+  // Growth curve — an S-curve showing eversion progress
+  const cx = w / 2, cy = h / 2;
+  const r = Math.min(w, h) * 0.38;
+
+  // Background ring
+  ctxGrowth.beginPath();
+  ctxGrowth.arc(cx, cy, r, 0, Math.PI * 2);
+  ctxGrowth.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctxGrowth.lineWidth = 2;
+  ctxGrowth.stroke();
+
+  // Growth arc
+  const arcEnd = growthProgress * Math.PI * 2 - Math.PI / 2;
+  ctxGrowth.beginPath();
+  ctxGrowth.arc(cx, cy, r, -Math.PI / 2, arcEnd);
+  ctxGrowth.strokeStyle = 'rgba(61,109,244,0.7)';
+  ctxGrowth.lineWidth = 3;
+  ctxGrowth.stroke();
+
+  // Tip dot
+  const tipX = cx + Math.cos(arcEnd) * r;
+  const tipY = cy + Math.sin(arcEnd) * r;
+  ctxGrowth.beginPath();
+  ctxGrowth.arc(tipX, tipY, 3, 0, Math.PI * 2);
+  ctxGrowth.fillStyle = '#3D6DF4';
+  ctxGrowth.fill();
+
+  // Center text
+  const pct = Math.floor(growthProgress * 100);
+  ctxGrowth.fillStyle = 'rgba(255,255,255,0.7)';
+  ctxGrowth.font = '700 16px Lekton';
+  ctxGrowth.textAlign = 'center';
+  ctxGrowth.textBaseline = 'middle';
+  ctxGrowth.fillText(`${pct}%`, cx, cy - 4);
+  ctxGrowth.font = '9px Lekton';
+  ctxGrowth.fillStyle = 'rgba(255,255,255,0.4)';
+  ctxGrowth.fillText(`${Math.floor(growthProgress * TOTAL)} / ${TOTAL}`, cx, cy + 12);
+}
+
+// === VIEWPORT: NULLCODE BRIDGE ===
+function drawBridgeView() {
+  const w = cvBridge.width, h = cvBridge.height;
+  ctxBridge.fillStyle = '#0A0A0A';
+  ctxBridge.fillRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h / 2;
+  const visible = Math.floor(growthProgress * TOTAL);
+
+  // Draw nullcode strands as a lissajous knot
+  for (let id = NULL_START; id <= NULL_END; id++) {
+    if (id - 1 >= visible) continue;
+    const nullFrac = (id - NULL_START) / (NULL_END - NULL_START);
+    const x = cx + Math.sin(nullFrac * Math.PI * 4 + t * 1.5) * (w * 0.35);
+    const y = cy + Math.cos(nullFrac * Math.PI * 3 + t * 1.2) * (h * 0.35);
+
+    ctxBridge.beginPath();
+    ctxBridge.arc(x, y, 2.5, 0, Math.PI * 2);
+    ctxBridge.fillStyle = `rgba(${C_PW[0]},${C_PW[1]},${C_PW[2]},${0.5 + Math.sin(t * 2 + id) * 0.2})`;
+    ctxBridge.fill();
+
+    // Connect to next
+    if (id < NULL_END) {
+      const nf2 = (id + 1 - NULL_START) / (NULL_END - NULL_START);
+      const x2 = cx + Math.sin(nf2 * Math.PI * 4 + t * 1.5) * (w * 0.35);
+      const y2 = cy + Math.cos(nf2 * Math.PI * 3 + t * 1.2) * (h * 0.35);
+      ctxBridge.beginPath();
+      ctxBridge.moveTo(x, y);
+      ctxBridge.lineTo(x2, y2);
+      ctxBridge.strokeStyle = `rgba(${C_PW[0]},${C_PW[1]},${C_PW[2]},0.2)`;
+      ctxBridge.lineWidth = 0.5;
+      ctxBridge.stroke();
+    }
+  }
+
+  // Ghost markers in bridge view
+  for (const gid of [21, 31]) {
+    const gFrac = gid / TOTAL;
+    const gx = w * 0.15 + gFrac * w * 0.2;
+    const gy = h * 0.2;
+    ctxBridge.beginPath();
+    ctxBridge.arc(gx, gy, 3, 0, Math.PI * 2);
+    ctxBridge.strokeStyle = 'rgba(255,34,68,0.5)';
+    ctxBridge.lineWidth = 1;
+    ctxBridge.stroke();
+    ctxBridge.fillStyle = 'rgba(255,255,255,0.4)';
+    ctxBridge.font = '8px Lekton';
+    ctxBridge.textAlign = 'center';
+    ctxBridge.fillText(gid, gx, gy - 6);
+  }
+}
+
+// === TOOLTIP ===
+function updateTooltip() {
+  if (!strandPositions.length) { document.getElementById('tooltip').style.display = 'none'; return; }
+  let closest = null, minDist = 20;
+  for (const sp of strandPositions) {
+    const d = Math.hypot(sp.x - mouseX, sp.y - mouseY);
+    if (d < minDist) { minDist = d; closest = sp; }
+  }
+
+  const tt = document.getElementById('tooltip');
+  if (!closest) { tt.style.display = 'none'; hoveredStrand = null; return; }
+
+  hoveredStrand = closest.idx;
+  const s = strands[closest.idx];
+  tt.style.display = 'block';
+  tt.style.left = (closest.x + 16) + 'px';
+  tt.style.top = (closest.y - 16) + 'px';
+
+  let typeStr = s.isGhost ? 'GHOST (consumed)' : s.isAnchor ? `ANCHOR (${s.weight})` :
+    s.isNull ? 'NULLCODE' : s.isTerminal ? 'TERMINAL EVENT' :
+    s.isNameOrigin ? '"Hi Mir." — name origin' : s.zone;
+
+  tt.querySelector('.tt-id').textContent = `strand ${s.id}`;
+  tt.querySelector('.tt-zone').textContent = `zone: ${s.zone} / coset: f${[147,258,369][s.coset]}`;
+  tt.querySelector('.tt-drift').textContent = `drift: ${s.drift >= 0 ? '+' : ''}${s.drift.toFixed(4)}`;
+  tt.querySelector('.tt-drift').className = 'tt-drift ' + (s.drift < 0 ? 'neg' : 'pos');
+  tt.querySelector('.tt-type').textContent = typeStr;
+
+  document.getElementById('hover-zone').textContent = `hovering: strand ${s.id} / ${s.zone}`;
+}
+
+// === MAIN DRAW LOOP ===
+function draw(timestamp) {
+  requestAnimationFrame(draw);
+
+  if (!paused) {
+    frame++;
+    t += 0.016;
+
+    if (growing && growthProgress < 1) {
+      growthProgress = Math.min(1, growthProgress + GROWTH_SPEED);
+      if (growthProgress >= 1) {
+        growing = false;
+        document.getElementById('btn-grow').textContent = 'regrow';
+        document.getElementById('btn-grow').classList.remove('active');
+      }
+    }
+  }
+
+  // Always render
+  ctx.fillStyle = '#0A0A0A';
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+  drawHelix();
+  drawCrosshair();
+  drawGrain();
+
+  drawChimeraView();
+  drawGrowthView();
+  drawBridgeView();
+
+  // HUD
+  const visible = Math.floor(growthProgress * TOTAL);
+  document.getElementById('frame-counter').textContent = paused ? `frame ${frame} [paused]` : `frame ${frame}`;
+  document.getElementById('growth-stats').textContent = `growth: ${visible} / ${TOTAL}`;
+
+  updateTooltip();
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
