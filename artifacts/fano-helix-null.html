@@ -207,14 +207,15 @@ function mulberry32(a) {
 }
 const rng = mulberry32(818);
 
-// IO Brand Color Diffusion — vivid brand-true values
+// IO Brand Color Diffusion — vivid but GPU-safe (pulled back ~10% on cool end
+// to prevent cyan blowout under bloom on real hardware)
 const GRAD_STOPS = [
-  { t: 0.00, color: new THREE.Color('#CE2867') },  // Pulsewave (full)
-  { t: 0.18, color: new THREE.Color('#F46138') },  // Solar Ember (full)
-  { t: 0.38, color: new THREE.Color('#F4A0A0') },  // Soft pink bridge
-  { t: 0.55, color: new THREE.Color('#60B8F0') },  // Sky transition
-  { t: 0.75, color: new THREE.Color('#2C9FF4') },  // Sky Pulse (full)
-  { t: 1.00, color: new THREE.Color('#3D6DF4') }   // Electric Horizon (full)
+  { t: 0.00, color: new THREE.Color('#C42860') },  // Pulsewave
+  { t: 0.18, color: new THREE.Color('#E85A35') },  // Solar Ember
+  { t: 0.38, color: new THREE.Color('#E89898') },  // Soft pink bridge
+  { t: 0.55, color: new THREE.Color('#5098D0') },  // Sky transition (tamed)
+  { t: 0.75, color: new THREE.Color('#2888D8') },  // Sky Pulse (tamed)
+  { t: 1.00, color: new THREE.Color('#3860D8') }   // Electric Horizon (tamed)
 ];
 
 function sampleGradient(t) {
@@ -228,19 +229,19 @@ function sampleGradient(t) {
   return GRAD_STOPS[GRAD_STOPS.length-1].color.clone();
 }
 
-// Zone colors — full IO brand
+// Zone colors — IO brand, GPU-safe
 const ZC = {
-  founding: new THREE.Color('#CE2867'),
-  julia:    new THREE.Color('#F46138'),
-  nullcode: new THREE.Color('#F4A0A0'),
-  post:     new THREE.Color('#2C9FF4')
+  founding: new THREE.Color('#C42860'),
+  julia:    new THREE.Color('#E85A35'),
+  nullcode: new THREE.Color('#E89898'),
+  post:     new THREE.Color('#2888D8')
 };
 
-// Coset colors — three IO brand families (full saturation)
+// Coset colors — three IO brand families (GPU-safe)
 const CC = [
-  new THREE.Color('#CE2867'),  // coset 0 → f147 → Pulsewave
-  new THREE.Color('#F46138'),  // coset 1 → f258 → Solar Ember
-  new THREE.Color('#3D6DF4')   // coset 2 → f369 → Electric Horizon
+  new THREE.Color('#C42860'),  // coset 0 → f147 → Pulsewave
+  new THREE.Color('#E85A35'),  // coset 1 → f258 → Solar Ember
+  new THREE.Color('#3860D8')   // coset 2 → f369 → Electric Horizon
 ];
 
 function getZone(id) {
@@ -388,6 +389,8 @@ camera.position.set(6, 2, 8);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(devicePixelRatio);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -401,7 +404,7 @@ controls.target.set(0, 0, 0);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.25, 0.4, 0.92);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.15, 0.3, 0.95);
 composer.addPass(bloomPass);
 
 const halftonePass = new HalftonePass(innerWidth, innerHeight, {
