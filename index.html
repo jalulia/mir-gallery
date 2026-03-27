@@ -1197,6 +1197,7 @@ const ARTIFACTS = [
   { file: "artifacts/beats.html", title: "Beats", desc: "12×8 step sequencer grid with patterned cells, sweeping 90 BPM playhead, curved signal-flow lines with traveling dots, and schematic annotations. Click to toggle cells.", tags: ["generative", "grid", "notation", "schematic"], status: "draft", date: "2026-03-25", refs: [] },
   { file: "artifacts/game-test.html", title: "Game test", desc: "Generative topology — orbital trajectory arcs, gradient spheres, central starburst, schematic annotations, traveling particles on dark field.", tags: ["color", "waveform", "generative", "topology"], status: "draft", date: "2026-03-25", refs: ["references/3782e13cadab7d9d8af897d543e7ff8c.jpg", "references/2e0e8ce22b51ab797100e58d6ae0da6c.jpg"] },
   { file: "artifacts/helix-strands.html", title: "HELIX Strands", desc: "Three-view HELIX strand visualization — Strand Garden (particle physics), Triple Helix Tower (scrollable ribbons), Breathing Ring (concentric noise-deformed rings). Two datasets: Exosomatic Cortex (410 strands) and Triadic Septadic (64 strands). Terminal HUD with coset frequency readouts.", tags: ["terminal", "waveform", "dataviz", "color"], status: "draft", date: "2026-03-25", refs: ["references/099dfa3bdd4c86f62dab8750f2f761b8.jpg", "references/4f64d2cab4066b0632692e16619bc980.jpg", "references/59750d64764c687898babf6ab6185048.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
+  { file: "artifacts/mir-756.html", title: "Mir 756", desc: "756-strand memory portrait — double helix encoding identity zones (Chris / interleaved / nullcode / Julia), void gaps, and drift events as seismic amplitude distortions.", tags: ["generative", "topology", "grid", "color"], status: "draft", date: "2026-03-25", refs: ["references/8f2586f173052165633b9cedc8fc30ae.jpg", "references/d5de78d777e7447a9f23df828a6ec763.jpg", "references/83e642cc81f190e95d165c55d4a112ec.jpg", "references/b1b61e52f8e2f73958b7c0e71c602498.jpg", "references/videoframe_7815.png", "references/59750d64764c687898babf6ab6185048.gif", "references/c0d45667dbe1e44d7e266233f8d7eaa9.gif", "references/b3ab75b13cc8fdc86e3078dfef6db79d.gif", "references/8b399bddeeb5698f8cfcf6a1db92d6f3.jpg"] },
   { file: "artifacts/helix-strands-v2.html", title: "HELIX Strands v2", desc: "Unified spiral HELIX visualization — interactive Archimedean spiral with coset coloring, brightness by local balance deviation, chapter boundaries, hover/click strand inspection, scrubber timeline, network overlay (Z₃ adjacency), drift overlay (σ_B particles). Two datasets.", tags: ["terminal", "waveform", "dataviz", "color"], status: "wip", date: "2026-03-25", refs: ["references/099dfa3bdd4c86f62dab8750f2f761b8.jpg", "references/4f64d2cab4066b0632692e16619bc980.jpg", "references/59750d64764c687898babf6ab6185048.gif", "references/0b54f392c84378bb4446dd4762d2da7a.gif"] },
   { file: "artifacts/helix-wave.html", title: "Helix Wave — 818", desc: "818-strand memory portrait on a rolling helix axis. 2 ghost strands (consumed), 9 structural anchors (strand 70 = Fano center), 21 nullcodes, terminal spike→crash→flip at 810-818. Canvas 2D with drift/knot/density viewports.", tags: ["topology", "generative", "waveform", "color", "dataviz", "terminal"], status: "wip", date: "2026-03-25", refs: ["references/8f2586f173052165633b9cedc8fc30ae.jpg", "references/560fc351465da1eae441080890059006.gif", "references/4f64d2cab4066b0632692e16619bc980.jpg"] },
   { file: "artifacts/mir-818.html", title: "Mir 818", desc: "Three.js double helix — 818 spheres. Ghosts as wireframe, anchors sized by checksum weight (strand 70 = gravitational center), terminal event sequence glowing. Orbit controls, hover panel, seismic timeline. σ_B = −0.172.", tags: ["topology", "generative", "color", "dataviz", "terminal"], status: "wip", date: "2026-03-25", refs: ["references/8f2586f173052165633b9cedc8fc30ae.jpg", "references/560fc351465da1eae441080890059006.gif", "references/4f64d2cab4066b0632692e16619bc980.jpg"] },
@@ -1214,7 +1215,7 @@ let selectionMode = false;
 let selectedRefs = new Set();
 let localArtifacts = JSON.parse(localStorage.getItem('mir-local-artifacts') || '[]');
 
-function getAllArtifacts() { return [...ARTIFACTS, ...localArtifacts].reverse(); }
+function getAllArtifacts() { return [...ARTIFACTS, ...localArtifacts]; }
 function saveSelection() { localStorage.setItem('mir-selected-refs', JSON.stringify([...selectedRefs])); }
 function saveLocalArtifacts() {
   const toSave = localArtifacts.map(a =>
@@ -2027,10 +2028,6 @@ function downloadHtmlDirect(html, name) {
 }
 
 // ─── INIT ───
-// Clean up stale localStorage artifacts
-localArtifacts = localArtifacts.filter(a => !((a.file || '').includes('ping-pong') || (a.title || '').toLowerCase().includes('ping pong') || (a.title || '').toLowerCase().includes('ping-pong')));
-saveLocalArtifacts();
-
 window.addEventListener('hashchange', handleRoute);
 restoreGeneratedBlobUrls();
 updateApiKeyBtn();

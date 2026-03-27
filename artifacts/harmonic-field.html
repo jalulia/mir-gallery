@@ -278,6 +278,11 @@ const EMBEDDED_STARS=[{"r":0.0,"d":0.0,"m":-26.7,"t":5757,"s":"G2","n":"Sol","c"
 'use strict';
 
 // ═══════════════════════════════════════════════════
+// DOM HELPER (must be first — used throughout)
+// ═══════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+// ═══════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════
 const LISTEN_RADIUS = 120;
@@ -977,7 +982,6 @@ function updateScan() {
 // ═══════════════════════════════════════════════════
 // HUD UPDATES
 // ═══════════════════════════════════════════════════
-const $ = id => document.getElementById(id);
 
 function updateStarPanel() {
   if (!focusedStar) {
