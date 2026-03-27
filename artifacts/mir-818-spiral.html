@@ -39,15 +39,15 @@ body {
   color: #3D6DF4; margin-bottom: 2px;
 }
 .subtitle {
-  font-size: 9px; color: rgba(255,255,255,0.22);
+  font-size: 9px; color: rgba(255,255,255,0.4);
   letter-spacing: 0.06em; text-transform: uppercase;
   margin-bottom: 18px; line-height: 1.7;
 }
 .section-title {
   font-family: 'Inter', sans-serif;
-  font-size: 8px; font-weight: 600;
-  letter-spacing: 0.16em; text-transform: uppercase;
-  color: rgba(255,255,255,0.25);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
   margin-bottom: 6px; margin-top: 16px;
   padding-top: 10px;
   border-top: 1px solid rgba(255,255,255,0.03);
@@ -61,7 +61,7 @@ body {
   border-radius: 3px;
   font-family: 'Lekton', monospace; font-size: 10px;
   letter-spacing: 0.04em;
-  color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.45);
   cursor: pointer; transition: all 0.15s;
   margin-bottom: 2px; background: transparent;
   width: 100%; text-align: left;
@@ -71,10 +71,16 @@ body {
 .indicator { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; opacity: 0.35; transition: opacity 0.15s; }
 .toggle-btn.active .indicator { opacity: 1; box-shadow: 0 0 6px currentColor; }
 
+.ux-hint {
+  font-size: 8px; color: rgba(255,255,255,0.3);
+  letter-spacing: 0.02em; line-height: 1.4;
+  padding: 1px 8px 4px; margin-bottom: 2px;
+}
+
 .zone-legend { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
 .zone-item {
   display: flex; align-items: center; gap: 6px;
-  font-size: 9px; color: rgba(255,255,255,0.25);
+  font-size: 9px; color: rgba(255,255,255,0.45);
   letter-spacing: 0.04em;
 }
 .zone-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
@@ -86,7 +92,7 @@ body {
   letter-spacing: 0.06em; text-transform: uppercase;
   background: transparent;
   border: 1px solid rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.3); border-radius: 3px;
+  color: rgba(255,255,255,0.5); border-radius: 3px;
   cursor: pointer; transition: all 0.15s;
 }
 .btn-sm:hover { border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.55); }
@@ -122,7 +128,7 @@ body {
   letter-spacing: 0.05em; text-transform: uppercase;
   background: transparent;
   border: 1px solid rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.25); border-radius: 3px;
+  color: rgba(255,255,255,0.45); border-radius: 3px;
   cursor: pointer; transition: all 0.15s;
 }
 .color-mode button:hover { border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.45); }
@@ -136,15 +142,15 @@ body {
 /* ═══ HUD ═══ */
 #hud-tl {
   position: fixed; top: 12px; left: 254px; z-index: 10;
-  font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
-  line-height: 1.7; color: rgba(255,255,255,0.35); pointer-events: none;
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  line-height: 1.7; color: rgba(255,255,255,0.5); pointer-events: none;
 }
 #hud-tl .accent { color: #3D6DF4; font-weight: 700; }
 
 #hud-tr {
   position: fixed; top: 12px; right: 14px; z-index: 10;
-  font-size: 8px; letter-spacing: 0.06em; text-align: right;
-  color: rgba(255,255,255,0.25); line-height: 1.7; pointer-events: none;
+  font-size: 9px; letter-spacing: 0.06em; text-align: right;
+  color: rgba(255,255,255,0.45); line-height: 1.7; pointer-events: none;
 }
 
 /* ═══ TOOLTIP ═══ */
@@ -172,7 +178,7 @@ body {
 #vp-drift canvas { display: block; }
 .viewport-label {
   position: absolute; top: 3px; left: 6px;
-  font-size: 7px; color: rgba(255,255,255,0.25);
+  font-size: 7px; color: rgba(255,255,255,0.45);
   letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none;
 }
 
@@ -246,12 +252,15 @@ body {
   <button class="toggle-btn" id="toggle-drift-echo" style="color:#F46138">
     <span class="indicator" style="background:#F46138"></span>Drift Echoes
   </button>
+  <div class="ux-hint">Recovery pairs — strands that compensate each other's drift disruptions</div>
   <button class="toggle-btn" id="toggle-coset-web" style="color:#3D6DF4">
     <span class="indicator" style="background:#3D6DF4"></span>Coset Siblings
   </button>
+  <div class="ux-hint">Z&#8323; family links — strands sharing the same triadic coset (f147/f258/f369)</div>
   <button class="toggle-btn" id="toggle-null-chain" style="color:#CE2867">
     <span class="indicator" style="background:#CE2867"></span>Nullcode Chain
   </button>
+  <div class="ux-hint">Sequential nullcode web — the 21-strand silence zone (642–662)</div>
 
   <div class="section-title">Actions</div>
   <div class="btn-row">
@@ -379,12 +388,12 @@ function getColor(s, mode) {
 // STRAND SIZE LOGIC
 // ═══════════════════════════════════════════════════════════════════════════
 function getRadius(s) {
-  if (s.flags && s.flags.includes('gravity_center')) return 7;
-  if (s.flags && s.flags.includes('ghost')) return 3;
-  if (s.flags && s.flags.includes('anchor')) return 3 + (s.checksum || 0) / 22763 * 4;
-  if (s.type === 'nullcode') return 2;
-  if (Math.abs(s.drift) > 0.14) return 2.5 + Math.abs(s.drift) * 4;
-  return 2.5;
+  if (s.flags && s.flags.includes('gravity_center')) return 6.6;
+  if (s.flags && s.flags.includes('ghost')) return 2.85;
+  if (s.flags && s.flags.includes('anchor')) return 2.85 + (s.checksum || 0) / 22763 * 3.8;
+  if (s.type === 'nullcode') return 1.9;
+  if (Math.abs(s.drift) > 0.14) return 2.4 + Math.abs(s.drift) * 3.8;
+  return 2.4;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -834,7 +843,7 @@ window.addEventListener('mouseup', () => {
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const factor = e.deltaY > 0 ? 0.9 : 1.1;
-  targetZoom = Math.max(0.15, Math.min(8.0, targetZoom * factor));
+  targetZoom = Math.max(0.15, Math.min(25.0, targetZoom * factor));
 }, { passive: false });
 
 // Touch support
@@ -867,7 +876,7 @@ canvas.addEventListener('touchmove', e => {
       e.touches[0].clientY - e.touches[1].clientY
     );
     if (touchDist > 0) {
-      targetZoom = Math.max(0.15, Math.min(8.0, targetZoom * (d / touchDist)));
+      targetZoom = Math.max(0.15, Math.min(25.0, targetZoom * (d / touchDist)));
     }
     touchDist = d;
   }
@@ -993,7 +1002,8 @@ function init(data) {
 
   // Auto-fit zoom to fill viewport with padding
   const spanX = maxX - minX, spanY = maxY - minY;
-  const fitZoom = Math.min(W / (spanX * 1.3), H / (spanY * 1.3), 5.0);
+  // Fill ~60% of viewport
+  const fitZoom = Math.min(W / (spanX * 1.05), H / (spanY * 1.05), 8.0);
   zoom = targetZoom = fitZoom;
 
   drawDriftViewport();
