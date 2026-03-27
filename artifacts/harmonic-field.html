@@ -289,6 +289,32 @@ const LISTEN_RADIUS = 120;
 const MAX_VOICES = 24;
 
 // ═══════════════════════════════════════════════════
+// STATE (hoisted to avoid temporal dead zones)
+// ═══════════════════════════════════════════════════
+let currentHarmony = 'pentatonic';
+let currentMode = 'lydian';
+let currentPalette = 'crystalline';
+let scaleFreqs, scaleNames;
+let starPoints, starMaterial, starData = [];
+let positions, colors, sizes, alphas;
+let pinLinesMesh = null;
+let pinHaloMesh = null;
+let audioStarted = false, analyserNode, analyserData, waveformData;
+const voicePool = [];
+const activeVoices = new Map();
+let audioChain = null;
+let interactionMode = 'explore';
+const mouseScreen = {x:0, y:0};
+let focusedStar = null, starsInRadius = new Set(), prevStarsInRadius = new Set();
+const pinnedStars = [];
+let pinSequencePlaying = false, pinSequenceInterval = null, pinSequenceIdx = 0;
+let pinTempoBPM = 120;
+let scanning = false, scanX = 0, scanBPM = 45, scanDirection = 1;
+let zoomLevel = 1, isDragging = false, dragStart = {x:0,y:0}, rotY = 0, rotX = 0;
+let hudVisible = true;
+let frame = 0;
+
+// ═══════════════════════════════════════════════════
 // HARMONIC SYSTEMS
 // ═══════════════════════════════════════════════════
 // All intervals in semitones from root
@@ -309,10 +335,6 @@ const HARMONY_DEFS = {
   overtone: { name:'OVERTONE' },  // special: natural harmonic series
   layered:  { name:'LAYERED' }    // special: combines pentatonic, modal, overtone by register
 };
-
-let currentHarmony = 'pentatonic';
-let currentMode = 'lydian';
-let currentPalette = 'crystalline';
 
 // Build frequency table from root C2 (65.41 Hz) spanning 5 octaves
 const ROOT_FREQ = 65.41; // C2
@@ -365,7 +387,6 @@ function buildLayeredFreqs() {
   return {freqs: combined.map(c=>c.f), names: combined.map(c=>c.n)};
 }
 
-let scaleFreqs, scaleNames;
 function rebuildScale() {
   if (currentHarmony === 'pentatonic') {
     const s = buildScaleFreqs(HARMONY_DEFS.pentatonic.intervals);
@@ -441,16 +462,10 @@ for (let i=0;i<dustN;i++){dustP[i*3]=(Math.random()-0.5)*4000;dustP[i*3+1]=(Math
 dustGeo.setAttribute('position',new THREE.BufferAttribute(dustP,3));
 scene.add(new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0x1a1a2e,size:0.6,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false})));
 
-// Star field (populated after data loads)
-let starPoints, starMaterial, starData = [];
-let positions, colors, sizes, alphas;
-
 // Pin constellation lines (Three.js)
-let pinLinesMesh = null;
 const pinLineMat = new THREE.LineBasicMaterial({color:0xE24DCA, transparent:true, opacity:0.45, blending:THREE.AdditiveBlending, depthWrite:false});
 
 // Pin halos
-let pinHaloMesh = null;
 const pinHaloMat = new THREE.ShaderMaterial({
   uniforms: {uTime:{value:0}},
   vertexShader:`
@@ -558,11 +573,6 @@ function buildStarField(catalog) {
 // ═══════════════════════════════════════════════════
 // AUDIO ENGINE — 5 TONAL PALETTES
 // ═══════════════════════════════════════════════════
-let audioStarted = false, analyserNode, analyserData, waveformData;
-const voicePool = [];
-const activeVoices = new Map();
-let audioChain = null;  // {reverb, chorus, delay, compressor}
-
 function initAudio() {
   if (audioStarted) return;
   Tone.start(); audioStarted = true;
@@ -736,17 +746,6 @@ document.querySelectorAll('#mode-selector .option').forEach(el => {
 // ═══════════════════════════════════════════════════
 // INTERACTION MODES
 // ═══════════════════════════════════════════════════
-let interactionMode = 'explore'; // 'explore', 'pin', 'scan'
-const mouseScreen = {x:0, y:0};
-let focusedStar = null, starsInRadius = new Set(), prevStarsInRadius = new Set();
-
-// PIN MODE STATE
-const pinnedStars = []; // ordered array of star ids
-let pinSequencePlaying = false, pinSequenceInterval = null, pinSequenceIdx = 0;
-let pinTempoBPM = 120;
-
-// SCAN MODE STATE
-let scanning = false, scanX = 0, scanBPM = 45, scanDirection = 1;
 const scanLineEl = document.getElementById('scan-line');
 const scanTrailEl = document.getElementById('scan-trail');
 
@@ -1056,8 +1055,6 @@ function drawAnalyzer() {
 // ═══════════════════════════════════════════════════
 // CAMERA CONTROLS
 // ═══════════════════════════════════════════════════
-let zoomLevel = 1, isDragging = false, dragStart = {x:0,y:0}, rotY = 0, rotX = 0;
-
 function handleWheel(e) {
   e.preventDefault(); initAudio();
   zoomLevel = Math.max(0.3, Math.min(5, zoomLevel + (e.deltaY > 0 ? -0.08 : 0.08)));
@@ -1131,7 +1128,6 @@ canvas.addEventListener('contextmenu', e => {
 });
 
 // Keyboard
-let hudVisible = true;
 window.addEventListener('keydown', e => {
   // HUD toggle
   if (e.key==='h'||e.key==='H') { hudVisible=!hudVisible; $('hud').style.opacity=hudVisible?'1':'0'; $('hud').style.pointerEvents=hudVisible?'auto':'none'; }
@@ -1178,7 +1174,6 @@ function updateTimer() {
 // ═══════════════════════════════════════════════════
 // ANIMATION LOOP
 // ═══════════════════════════════════════════════════
-let frame = 0;
 function animate() {
   requestAnimationFrame(animate);
   frame++;
