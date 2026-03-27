@@ -213,19 +213,19 @@ function mulberry32(a) {
 }
 const rng = mulberry32(818);
 
-// Zone colors — punched up for contrast
+// Zone colors — saturated
 const ZC = {
-  founding: new THREE.Color('#d4728f'),
-  julia:    new THREE.Color('#d4a86e'),
-  nullcode: new THREE.Color('#e0e0e0'),
-  post:     new THREE.Color('#7eb8e0')
+  founding: new THREE.Color('#e8507a'),
+  julia:    new THREE.Color('#e8a040'),
+  nullcode: new THREE.Color('#ffffff'),
+  post:     new THREE.Color('#50a0e8')
 };
 
-// Coset colors — Z₃ visual channels (boosted)
+// Coset colors — Z₃ visual channels (saturated)
 const CC = [
-  new THREE.Color('#8ad4df'),  // coset 0 → f147 → teal
-  new THREE.Color('#df8ab8'),  // coset 1 → f258 → rose
-  new THREE.Color('#dfd48a')   // coset 2 → f369 → gold
+  new THREE.Color('#40e0d0'),  // coset 0 → f147 → teal
+  new THREE.Color('#e040a0'),  // coset 1 → f258 → rose
+  new THREE.Color('#e0d040')   // coset 2 → f369 → gold
 ];
 
 function getZone(id) {
@@ -354,13 +354,13 @@ addC(108, 641, 'name');   // 109→642
 
 // Connection color map
 const CONN_COLORS = {
-  nullcode: new THREE.Color(0xbbbbbb),
-  anchor:   new THREE.Color(0xd4a373),
-  ghost:    new THREE.Color(0xcc6677),
-  terminal: new THREE.Color(0xe05555),
-  drift:    new THREE.Color(0x88aacc),
-  coset:    new THREE.Color(0x6688bb),
-  name:     new THREE.Color(0x55cccc)
+  nullcode: new THREE.Color(0xffffff),
+  anchor:   new THREE.Color(0xffa030),
+  ghost:    new THREE.Color(0xff4080),
+  terminal: new THREE.Color(0xff3030),
+  drift:    new THREE.Color(0x60bbff),
+  coset:    new THREE.Color(0x4090ff),
+  name:     new THREE.Color(0x30ffdd)
 };
 
 // === THREE.JS SETUP ===
@@ -386,7 +386,7 @@ controls.target.set(0, 0, 0);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.35, 0.5, 0.75);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.6, 0.85);
 composer.addPass(bloomPass);
 
 const halftonePass = new HalftonePass(innerWidth, innerHeight, {
@@ -418,8 +418,8 @@ scene.add(dLight);
 
 // === TORUS WIREFRAME SHELL ===
 const shellGroup = new THREE.Group();
-const shellMat = new THREE.LineBasicMaterial({ color: 0x5577aa, transparent: true, opacity: 0.45 });
-const ribMat = new THREE.LineBasicMaterial({ color: 0x5577aa, transparent: true, opacity: 0.3 });
+const shellMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35 });
+const ribMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
 
 // Meridional circles (cross-sections) — 24 around the torus
 for (let m = 0; m < 24; m++) {
@@ -579,7 +579,7 @@ for (let start = 0; start < TOTAL - segLen; start += segLen) {
   // Variegation: founding and post zones are more visible (dominant population)
   // Julia and nullcode are fainter (recessive population)
   const opacity = (zone === 'founding' || zone === 'post') ? 0.5 : 0.2;
-  const color = (zone === 'founding' || zone === 'post') ? 0xaa8860 : 0x887755;
+  const color = (zone === 'founding' || zone === 'post') ? 0xffcc55 : 0xcc9933;
   const geo = new THREE.BufferGeometry().setFromPoints(pts);
   chimeraGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
     color, transparent: true, opacity
@@ -591,7 +591,7 @@ for (const b of zoneBoundaries) {
   if (b < TOTAL) {
     const geo = new THREE.BufferGeometry().setFromPoints([basePositions[b], chimeraPositions[b]]);
     chimeraGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-      color: 0xccaa70, transparent: true, opacity: 0.65
+      color: 0xffdd66, transparent: true, opacity: 0.7
     })));
   }
 }
@@ -625,7 +625,7 @@ ncx /= 21; ncy /= 21; ncz /= 21;
 const lissGeo = new THREE.BufferGeometry();
 const lissVerts = new Float32Array(201 * 3);
 const lissLine = new THREE.Line(lissGeo, new THREE.LineBasicMaterial({
-  color: 0xeeeeee, transparent: true, opacity: 0.65
+  color: 0xffffff, transparent: true, opacity: 0.8
 }));
 scene.add(lissLine);
 
@@ -646,7 +646,7 @@ const fenMeshes = [];
 for (const fid of fenIds) {
   const p = basePositions[fid-1];
   const rGeo = new THREE.RingGeometry(0.25, 0.3, 32);
-  const rMat = new THREE.MeshBasicMaterial({ color: 0xbb8877, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+  const rMat = new THREE.MeshBasicMaterial({ color: 0xff9966, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
   const ring = new THREE.Mesh(rGeo, rMat);
   ring.position.copy(p);
   ring.lookAt(camera.position);
@@ -659,7 +659,7 @@ const ghostMeshes = [];
 for (const gid of [21, 31]) {
   const p = basePositions[gid-1];
   const gGeo = new THREE.SphereGeometry(0.3, 8, 6);
-  const gMat = new THREE.MeshBasicMaterial({ color: 0xcc6677, wireframe: true, transparent: true, opacity: 0.4 });
+  const gMat = new THREE.MeshBasicMaterial({ color: 0xff4080, wireframe: true, transparent: true, opacity: 0.7 });
   const gMesh = new THREE.Mesh(gGeo, gMat);
   gMesh.position.copy(p);
   ghostMeshes.push(gMesh);
