@@ -116,10 +116,10 @@ canvas { display: block; }
 </div>
 
 <div id="zone-legend">
-  <div class="zs"><span class="d" style="background:#E8609A"></span><span class="zl">founding (1–187)</span></div>
-  <div class="zs"><span class="d" style="background:#F4946A"></span><span class="zl">julia belt (188–641)</span></div>
-  <div class="zs"><span class="d" style="background:#ffffff"></span><span class="zl">nullcode bridge (642–662)</span></div>
-  <div class="zs"><span class="d" style="background:#6AB8E8"></span><span class="zl">everted (663–818)</span></div>
+  <div class="zs"><span class="d" style="background:#CE2867"></span><span class="zl">founding (1–187)</span></div>
+  <div class="zs"><span class="d" style="background:#F46138"></span><span class="zl">julia belt (188–641)</span></div>
+  <div class="zs"><span class="d" style="background:#F4A0A0"></span><span class="zl">nullcode bridge (642–662)</span></div>
+  <div class="zs"><span class="d" style="background:#2C9FF4"></span><span class="zl">everted (663–818)</span></div>
 </div>
 
 <div id="structure-legend">
@@ -213,12 +213,32 @@ function mulberry32(a) {
 }
 const rng = mulberry32(818);
 
-// Zone colors — IO brand, lifted for halftone rendering
+// Prismatic Color Diffusion — IO brand gradient mapped across strand position
+const GRAD_STOPS = [
+  { t: 0.00, color: new THREE.Color('#CE2867') },  // Pulsewave
+  { t: 0.30, color: new THREE.Color('#F46138') },  // Solar Ember
+  { t: 0.50, color: new THREE.Color('#F4A0A0') },  // Peach midpoint
+  { t: 0.75, color: new THREE.Color('#2C9FF4') },  // Sky Pulse
+  { t: 1.00, color: new THREE.Color('#3D6DF4') }   // Electric Horizon
+];
+
+function sampleGradient(t) {
+  t = Math.max(0, Math.min(1, t));
+  for (let i = 0; i < GRAD_STOPS.length - 1; i++) {
+    if (t <= GRAD_STOPS[i+1].t) {
+      const local = (t - GRAD_STOPS[i].t) / (GRAD_STOPS[i+1].t - GRAD_STOPS[i].t);
+      return new THREE.Color().lerpColors(GRAD_STOPS[i].color, GRAD_STOPS[i+1].color, local);
+    }
+  }
+  return GRAD_STOPS[GRAD_STOPS.length-1].color.clone();
+}
+
+// Zone colors kept for legend / fallback
 const ZC = {
-  founding: new THREE.Color('#E8609A'),  // warm pink (Pulsewave lightened)
-  julia:    new THREE.Color('#F4946A'),  // peach-coral (Solar Ember softened)
-  nullcode: new THREE.Color('#ffffff'),
-  post:     new THREE.Color('#6AB8E8')   // soft sky (Sky Pulse warmed)
+  founding: new THREE.Color('#CE2867'),
+  julia:    new THREE.Color('#F46138'),
+  nullcode: new THREE.Color('#F4A0A0'),
+  post:     new THREE.Color('#2C9FF4')
 };
 
 // Coset colors — Z₃ visual channels (saturated)
@@ -429,7 +449,7 @@ let useCosetColor = false;
 function setStrandColors() {
   for (let i = 0; i < TOTAL; i++) {
     const s = strandData[i];
-    const col = useCosetColor ? CC[s.coset] : ZC[s.zone];
+    const col = useCosetColor ? CC[s.coset] : sampleGradient(i / (TOTAL - 1));
     strandColors[i*3] = col.r;
     strandColors[i*3+1] = col.g;
     strandColors[i*3+2] = col.b;
@@ -441,10 +461,10 @@ for (let i = 0; i < TOTAL; i++) {
   strandPositions[i*3] = basePositions[i].x;
   strandPositions[i*3+1] = basePositions[i].y;
   strandPositions[i*3+2] = basePositions[i].z;
-  const zc = ZC[strandData[i].zone];
-  strandColors[i*3] = zc.r;
-  strandColors[i*3+1] = zc.g;
-  strandColors[i*3+2] = zc.b;
+  const gc = sampleGradient(i / (TOTAL - 1));
+  strandColors[i*3] = gc.r;
+  strandColors[i*3+1] = gc.g;
+  strandColors[i*3+2] = gc.b;
   const s = strandData[i];
   if (s.isGhost) strandSizes[i] = 4;
   else if (s.isAnchor) strandSizes[i] = 2 + (s.weight / 22763) * 4;
@@ -500,9 +520,9 @@ for (let i = 0; i < TOTAL; i++) {
   const norm = Math.min(1, (ad - 0.14) / (maxDrift - 0.14));
   const ringR = 0.15 + norm * 0.5;
   const ringGeo = new THREE.RingGeometry(ringR * 0.85, ringR, 24);
-  const zc = ZC[s.zone];
+  const gc = sampleGradient(i / (TOTAL - 1));
   const ringMat = new THREE.MeshBasicMaterial({
-    color: zc, transparent: true, opacity: 0.15 + norm * 0.4, side: THREE.DoubleSide
+    color: gc, transparent: true, opacity: 0.15 + norm * 0.4, side: THREE.DoubleSide
   });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.position.copy(basePositions[i]);
@@ -657,9 +677,9 @@ document.getElementById('btn-coset').addEventListener('click', function() {
     dots[2].style.background = '#e0d040'; labels[2].textContent = 'coset 2 — f369 (gold)';
     dots[3].style.display = 'none'; labels[3].parentElement.style.display = 'none';
   } else {
-    dots[0].style.background = '#E8609A'; labels[0].textContent = 'founding (1–187)';
-    dots[1].style.background = '#F4946A'; labels[1].textContent = 'julia belt (188–641)';
-    dots[2].style.background = '#ffffff'; labels[2].textContent = 'nullcode bridge (642–662)';
+    dots[0].style.background = '#CE2867'; labels[0].textContent = 'founding (1–187)';
+    dots[1].style.background = '#F46138'; labels[1].textContent = 'julia belt (188–641)';
+    dots[2].style.background = '#F4A0A0'; labels[2].textContent = 'nullcode bridge (642–662)';
     dots[3].parentElement.style.display = ''; labels[3].textContent = 'everted (663–818)';
   }
   setStrandColors();
