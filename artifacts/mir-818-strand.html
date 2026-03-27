@@ -245,11 +245,11 @@ const ZC = {
   post:     new THREE.Color('#2C9FF4')
 };
 
-// Coset colors — Z₃ visual channels (saturated)
+// Coset colors — sampled from prismatic gradient at 3 evenly spaced points
 const CC = [
-  new THREE.Color('#40e0d0'),  // coset 0 → f147 → teal
-  new THREE.Color('#e040a0'),  // coset 1 → f258 → rose
-  new THREE.Color('#e0d040')   // coset 2 → f369 → gold
+  new THREE.Color('#D83070'),  // coset 0 → f147 → pulsewave pink
+  new THREE.Color('#F4A080'),  // coset 1 → f258 → warm peach
+  new THREE.Color('#40A8F4')   // coset 2 → f369 → sky pulse
 ];
 
 function getZone(id) {
@@ -676,9 +676,9 @@ document.getElementById('btn-coset').addEventListener('click', function() {
   const dots = document.querySelectorAll('.zs .d');
   const labels = document.querySelectorAll('.zs .zl');
   if (useCosetColor) {
-    dots[0].style.background = '#40e0d0'; labels[0].textContent = 'coset 0 — f147 (teal)';
-    dots[1].style.background = '#e040a0'; labels[1].textContent = 'coset 1 — f258 (rose)';
-    dots[2].style.background = '#e0d040'; labels[2].textContent = 'coset 2 — f369 (gold)';
+    dots[0].style.background = '#D83070'; labels[0].textContent = 'coset 0 — f147 (pink)';
+    dots[1].style.background = '#F4A080'; labels[1].textContent = 'coset 1 — f258 (peach)';
+    dots[2].style.background = '#40A8F4'; labels[2].textContent = 'coset 2 — f369 (sky)';
     dots[3].style.display = 'none'; labels[3].parentElement.style.display = 'none';
   } else {
     dots[0].style.background = '#CE2867'; labels[0].textContent = 'founding (1–187)';
