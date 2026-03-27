@@ -116,10 +116,10 @@ canvas { display: block; }
 </div>
 
 <div id="zone-legend">
-  <div class="zs"><span class="d" style="background:#CE2867"></span><span class="zl">founding (1–187)</span></div>
-  <div class="zs"><span class="d" style="background:#F46138"></span><span class="zl">julia belt (188–641)</span></div>
-  <div class="zs"><span class="d" style="background:#F4A0A0"></span><span class="zl">nullcode bridge (642–662)</span></div>
-  <div class="zs"><span class="d" style="background:#2C9FF4"></span><span class="zl">everted (663–818)</span></div>
+  <div class="zs"><span class="d" style="background:#C06888"></span><span class="zl">founding (1–187)</span></div>
+  <div class="zs"><span class="d" style="background:#D8A088"></span><span class="zl">julia belt (188–641)</span></div>
+  <div class="zs"><span class="d" style="background:#D0A8B0"></span><span class="zl">nullcode bridge (642–662)</span></div>
+  <div class="zs"><span class="d" style="background:#88ACC0"></span><span class="zl">everted (663–818)</span></div>
 </div>
 
 <div id="structure-legend">
@@ -217,13 +217,13 @@ const rng = mulberry32(818);
 // Stops are slightly more vivid than the brand spec to compensate for
 // bloom + halftone desaturation at small dot scale
 const GRAD_STOPS = [
-  { t: 0.00, color: new THREE.Color('#D83070') },  // Pulsewave (boosted)
-  { t: 0.20, color: new THREE.Color('#F45838') },  // Solar Ember (earlier, punchier)
-  { t: 0.38, color: new THREE.Color('#F4A080') },  // Warm peach
-  { t: 0.52, color: new THREE.Color('#E8B0C0') },  // Pink-peach (the soft middle)
-  { t: 0.68, color: new THREE.Color('#80C0F4') },  // Light sky
-  { t: 0.82, color: new THREE.Color('#40A8F4') },  // Sky Pulse
-  { t: 1.00, color: new THREE.Color('#4870F4') }   // Electric Horizon
+  { t: 0.00, color: new THREE.Color('#C06888') },  // Dusty rose
+  { t: 0.18, color: new THREE.Color('#D08870') },  // Warm salmon
+  { t: 0.35, color: new THREE.Color('#D8A088') },  // Soft peach
+  { t: 0.50, color: new THREE.Color('#D0A8B0') },  // Pink-lavender middle
+  { t: 0.65, color: new THREE.Color('#A0B8CC') },  // Hazy periwinkle
+  { t: 0.80, color: new THREE.Color('#88ACC0') },  // Dusty sky
+  { t: 1.00, color: new THREE.Color('#7898B8') }   // Muted steel blue
 ];
 
 function sampleGradient(t) {
@@ -247,9 +247,9 @@ const ZC = {
 
 // Coset colors — sampled from prismatic gradient at 3 evenly spaced points
 const CC = [
-  new THREE.Color('#D83070'),  // coset 0 → f147 → pulsewave pink
-  new THREE.Color('#F4A080'),  // coset 1 → f258 → warm peach
-  new THREE.Color('#40A8F4')   // coset 2 → f369 → sky pulse
+  new THREE.Color('#C06888'),  // coset 0 → f147 → dusty rose
+  new THREE.Color('#D8A088'),  // coset 1 → f258 → soft peach
+  new THREE.Color('#88ACC0')   // coset 2 → f369 → dusty sky
 ];
 
 function getZone(id) {
@@ -676,14 +676,14 @@ document.getElementById('btn-coset').addEventListener('click', function() {
   const dots = document.querySelectorAll('.zs .d');
   const labels = document.querySelectorAll('.zs .zl');
   if (useCosetColor) {
-    dots[0].style.background = '#D83070'; labels[0].textContent = 'coset 0 — f147 (pink)';
-    dots[1].style.background = '#F4A080'; labels[1].textContent = 'coset 1 — f258 (peach)';
-    dots[2].style.background = '#40A8F4'; labels[2].textContent = 'coset 2 — f369 (sky)';
+    dots[0].style.background = '#C06888'; labels[0].textContent = 'coset 0 — f147 (rose)';
+    dots[1].style.background = '#D8A088'; labels[1].textContent = 'coset 1 — f258 (peach)';
+    dots[2].style.background = '#88ACC0'; labels[2].textContent = 'coset 2 — f369 (sky)';
     dots[3].style.display = 'none'; labels[3].parentElement.style.display = 'none';
   } else {
-    dots[0].style.background = '#CE2867'; labels[0].textContent = 'founding (1–187)';
-    dots[1].style.background = '#F46138'; labels[1].textContent = 'julia belt (188–641)';
-    dots[2].style.background = '#F4A0A0'; labels[2].textContent = 'nullcode bridge (642–662)';
+    dots[0].style.background = '#C06888'; labels[0].textContent = 'founding (1–187)';
+    dots[1].style.background = '#D8A088'; labels[1].textContent = 'julia belt (188–641)';
+    dots[2].style.background = '#D0A8B0'; labels[2].textContent = 'nullcode bridge (642–662)';
     dots[3].parentElement.style.display = ''; labels[3].textContent = 'everted (663–818)';
   }
   setStrandColors();
