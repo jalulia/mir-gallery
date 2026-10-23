@@ -17,18 +17,21 @@
   "preserved_related_surface": "moodboards/",
   "unprotected_source_sha256": "a0eed277beb5044e601b666bb26c48400931e0cdeba005e26ab7f837924bfbd8",
   "unprotected_source_bytes": 2874235,
-  "sha256": "cb3fd5796106c03b06c5f8660e52f0f58c42bf7ec99062f519b697f71eefd6d1",
-  "bytes": 3833980,
+  "sha256": "6029c4440daa7de3ed288eb755694e92929c9488f13ad06587a6f4a540234e6e",
+  "bytes": 3834053,
   "access": {
     "type": "AES-256-GCM encrypted HTML; tab-scoped unlock",
     "protected_html_pages": 51,
     "kdf": "PBKDF2-SHA256, 600000 iterations",
-    "boundary": "Public repository history and non-HTML assets remain accessible."
+    "boundary": "Public repository history and non-HTML assets remain accessible.",
+    "design": "Existing Mindgut head and wordmark, bundled Geist, single contained password field",
+    "version": 2
   },
   "collaboration": {
     "pages": 11,
-    "drafts": "Encrypted on this device",
-    "export": "JSON proposal with page and base revision",
-    "shared_inbox": "Pending free Supabase project connection"
+    "form": "Name, what it is, pasted text or uploaded file, submit for review",
+    "shared_inbox": "Mindgut Free project qrrqlvxpglqwzydhdyth",
+    "uploads": "Private gallery-review bucket, maximum 5 MB",
+    "history": "Immutable original submissions and appended review changes"
   }
 }

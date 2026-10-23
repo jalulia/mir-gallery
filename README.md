@@ -12,6 +12,8 @@ The earlier gallery remains under [_Archive/2026-10-23-gallery/](_Archive/2026-1
 
 ## Shared library access and edits
 
-All 51 served HTML pages now ask for the shared library password, including direct links. Successful entry unlocks the current tab. Each of the eleven documentation pages offers encrypted local drafts and proposal downloads, retaining its page and revision. A shared Supabase review inbox is prepared; connection is pending.
+All 51 HTML pages use the shared library password, including direct links. The entry screen uses the original Mindgut identity. Each documentation page has a short review form: name, what it is, pasted text or a file, and Submit for review.
 
-This reading gate does not remove public Git history or protect non-HTML files. [Access boundaries, editing instructions and the proposed review pipeline](collaboration/README.md).
+The review inbox uses the Mindgut project in its separate Free organization. Submissions retain their page and revision; uploaded files are private. Original submissions are immutable and review changes are recorded in history.
+
+The reading gate preserves public Git history and does not protect non-HTML assets. [Access boundaries, editing instructions and reviewer workflow](collaboration/README.md).

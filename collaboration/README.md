@@ -1,29 +1,34 @@
-# Library access and proposed edits
+# Mindgut library access and review inbox
 
-All current HTML pages are AES-256-GCM encrypted. PBKDF2-SHA256 uses 600,000 iterations. Successful entry retains a derived key in sessionStorage for this tab. The library footer can lock it again. No password is embedded in shipped code. Draft notes are encrypted in localStorage with the same key.
+The entry screen uses the existing Mindgut head, wordmark and Geist fonts. All 51 served HTML pages are AES-256-GCM encrypted using the shared password. PBKDF2-SHA256 uses 600,000 iterations. Successful entry retains a derived key for the current tab.
 
-**Boundary:** this is a reading gate on a previously public GitHub Pages site. The repository history and non-HTML assets remain public. Existing public copies cannot be made confidential by this update. Use private source plus a server-side gate to enforce genuine access control. This change deliberately preserves existing Git history.
+**Boundary:** this is a reading gate on a previously public GitHub Pages site. Public Git history and non-HTML assets remain accessible. This update preserves that history. Genuine source confidentiality requires private source and private hosting.
 
-## Current experience
+## Submitting an update
 
-Each of the eleven documentation pages has a contribution form. Visitors choose feedback, a proposed update, or Mir’s proposed update; author is optional and is self-reported. Proposals retain the chapter, page URL, base revision, note, replacement text, UUID and timestamp. Until the shared inbox is connected, the interface explicitly offers encrypted local drafts and JSON downloads only. It never reports those drafts as submitted.
+Every documentation page has the same short form: name, what it is, pasted text or an uploaded file, and Submit for review. Files are limited to 5 MB. The page, title and base revision are attached automatically. Names are self-reported; this is a shared-password library, not individual identity verification.
 
-## Shared review library — ready to connect
+Typed text is retained as an encrypted device-local draft until a successful submission. Uploaded files are not stored in browser drafts. A success message appears only after the server confirms the record.
 
-1. Select the intended Supabase project and apply `supabase/migrations/202610230001_gallery_feedback.sql`.
-2. Deploy `supabase/functions/gallery-feedback` with `verify_jwt=false`; its own shared-key authorization is mandatory.
-3. The function contains only a SHA256 verifier for the library key, never the bearer key itself. Supabase supplies the service URL and service-role secrets. If the gallery password changes, regenerate the verifier with it or set `COLLABORATION_ACCESS_KEY_SHA256` in the project’s Edge Function secrets.
-4. Set `endpoint` in `collaboration/config.js` to that Edge Function’s URL. The interface then enables “Send for review.”
-5. Review `gallery_proposals` in Supabase Studio. Move records through `new`, `in_review`, `accepted`, `published` (or `declined`). On publication, set `published_revision`. `gallery_review_history` automatically retains each status change and review note. Anonymous clients cannot read or modify either table.
+## Reviewing submissions
 
-Original submissions should stay intact. Add review explanations in `reviewer_note`; publish accepted changes in a Git commit referencing the proposal UUID. Record the new documentation revision in `published_revision`. This joins the feedback library to the site’s existing Git version history without automatically publishing suggested wording.
+Project: **Mindgut**, in the separate **Mindgut Free** organization.
 
-## Other easy options
+Open the project’s Table Editor and select `gallery_proposals`. Uploaded files are in the private `gallery-review` Storage bucket, organized by proposal UUID. Anonymous visitors cannot read submissions, review history or stored files.
 
-- JSON proposal files: works now, no account or backend; a reviewer imports or reads them and applies accepted edits.
-- Supabase inbox: recommended for a shared, private queue with page/revision context and a review trail.
-- GitHub Issues and pull requests: useful for technical collaborators, but requires GitHub accounts and would expose notes in this public repository. It is not enabled here.
+Reviewers change `status` through `new`, `in_review`, `accepted` and `published`, or `declined`. Add explanations in `reviewer_note`. When publishing, set `published_revision` too. The original submitted fields cannot be overwritten; changes to review state and notes are appended to `gallery_review_history`.
+
+Accepted wording is applied in a Git commit referring to the proposal UUID, then released with a new documentation revision. Submitting a proposal does not publish it automatically.
+
+## Implementation
+
+- `collaboration/config.js`: submission endpoint and current documentation revision; no service secrets.
+- `supabase/functions/gallery-feedback/index.ts`: shared-key authentication, input checks, private uploads, submission persistence and retry handling. `verify_jwt=false` because the handler authenticates the library key itself.
+- `supabase/migrations/202610230001_gallery_feedback.sql`: reviewed initial schema, explicit privileges, row-level security, immutable originals and review history. The schema was applied through the signed-in Supabase SQL Editor because the connector’s authorization did not cover the new Free organization.
+- The project’s generated `public.rls_auto_enable()` helper is restricted to database owners: `REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated`. Both browser roles were verified unable to execute it.
+- The Edge Function contains a SHA256 verifier, not the bearer credential. Supabase supplies its service-role key server-side. Never put that key in browser code.
+- `tools/check-feedback.mjs`: authorization, validation, pasted text, upload and failed-insert cleanup checks; supply the library password on stdin.
 
 ## Updating protected pages
 
-Use `node tools/protect.mjs decrypt REPO_DIR PRIVATE_DIR`, supplying the password through stdin. Edit the decrypted HTML outside the repository, then run the same tool with `encrypt PRIVATE_DIR REPO_DIR`. Never commit plaintext copies or passwords. The root guide receives the collaboration includes during encryption. Verify the source diff and password behavior before pushing.
+Run `node tools/protect.mjs decrypt REPO_DIR PRIVATE_DIR`, supplying the password on stdin. Edit decrypted HTML outside the repository, then use `encrypt PRIVATE_DIR REPO_DIR`. Never commit plaintext copies or passwords. The shared entry template is `tools/access-template.txt`. Updating only the visual entry shell does not require re-encrypting unchanged payloads.

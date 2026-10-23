@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-23",
+  "access_design_version": 2,
+  "identity": "Original Mindgut head, wordmark and Geist fonts extracted unchanged from the guide",
+  "protected_pages": 51,
+  "secondary_payloads": "Unchanged from prior publication",
+  "form": "Name, what it is, paste text or upload, submit for review",
+  "mobile_width": 390,
+  "mobile_overflow": false,
+  "database_verification": {
+    "anonymous_table_access": false,
+    "row_level_security": true,
+    "immutable_originals": true,
+    "review_history": true,
+    "automatic_rls_helper_public_execution": false
+  },
+  "endpoint_verification": {
+    "preflight": 204,
+    "unauthorized": 401,
+    "text_submission": 201,
+    "file_submission": 201,
+    "retry": 201,
+    "persisted_rows": 2,
+    "persisted_private_files": 1,
+    "qa_records": "Archived as declined with explicit verification notes"
+  },
+  "unit_checks": "Authorization, validation, text, file bytes, failed-insert cleanup passed",
+  "project": "qrrqlvxpglqwzydhdyth",
+  "organization_plan": "Free"
+}
