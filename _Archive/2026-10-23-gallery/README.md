@@ -1,2 +1,6 @@
-# mir-gallery
-Mir visualization workbench — reference library + curated artifact gallery for frankensteining new artifacts from various visual and other source material references.
+# Archived material
+
+The original is preserved locally. Personal record material is excluded from the current public pages.
+
+[Open the current guide](https://jalulia.github.io/mir-gallery/#contents).
+Other artwork files remain available; pages based on personal records show the archive notice.

@@ -1,16 +1,1 @@
-{
-  "document": "Mindgut documentation",
-  "revision": "07",
-  "document_date": "2026-10-20",
-  "published_date": "2026-10-23",
-  "source_filename": "Mindgut_Docs_V07.html",
-  "source_status": "directional",
-  "index_sha256": "4be0b15e98c42f4207d479489d71730a2969766ebf6115af8218be8a84bbbf04",
-  "index_git_blob": "82f655ea8a6f9c8a0067e1508075362b7e939b8d",
-  "source_bytes": 2740192,
-  "archive_path": "_Archive/2026-10-23-gallery",
-  "archive_from_commit": "e8b66233e8f6a2c42b5f0ed1394b0b7c6480e338",
-  "archive_tree": "a24dbbab8c92a4af561d00f7495fba852e1043d9",
-  "verification": "Matches the current V07 pointer, build copy, and recorded source SHA-256. Eleven routes checked at 1440px and 390px; no horizontal overflow, broken visible images, or browser errors. Search returns relevant results.",
-  "scope": "Documentation of interface 2.2.59 and public source cbf4e42, with evidence boundaries retained inside the document."
-}
+{"status": "archived-locally", "public_surface": "sanitized archive notice", "revision": "07", "history": "retained by request"}

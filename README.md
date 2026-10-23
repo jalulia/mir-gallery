@@ -1,14 +1,9 @@
 # Mindgut documentation
 
-[Read the documentation](https://jalulia.github.io/mir-gallery/#contents) · [Open the coded workspace example](https://jalulia.github.io/mir-gallery/#start/workspace)
+[Open the guide](https://jalulia.github.io/mir-gallery/#contents) · [Workspace example](https://jalulia.github.io/mir-gallery/#start/workspace) · [Viewers](https://jalulia.github.io/mir-gallery/#memory/viewers)
 
-The homepage serves **Mindgut Docs V08**, dated 23 October 2026. Workspace and panel examples are HTML/CSS recreated from the recorded 2.2.59 frontend, with generic messages, filenames, tasks and readout values. They use the original UI font, wordmark, colours and controls, with layouts adapted for desktop and phones. Local example controls do not connect to an account or product backend.
+Revision 09 recreates every UI example in browser code, with synthetic messages, files, tasks, readouts and viewer data. No UI screenshots are embedded. The components reuse the recorded 2.2.59 markup, styles and rendering code; examples do not connect to an account.
 
-The guide is a self-contained HTML file with embedded styles, scripts, fonts and assets. Download `index.html` to use it offline. Its technical evidence boundary is retained from V07: interface 2.2.59 and public source cbf4e42, with limits stated inside. The 3D/wave viewer evidence images remain labelled captures.
+Public pages and datasets containing personal record material have been replaced with archive notices. Complete originals are preserved locally. Git history remains intact at the owner's explicit request. Other artwork remains available.
 
-## Preserved versions
-
-- [Documentation V07](https://jalulia.github.io/mir-gallery/_Archive/2026-10-23-docs-v07/#contents) — unchanged original screenshot-based guide, plus its README and publication record.
-- [Previous Mir Gallery](https://jalulia.github.io/mir-gallery/_Archive/2026-10-23-gallery/) — complete pre-documentation repository snapshot.
-
-Supporting gallery files remain at their original paths. Nothing has been deleted. `.nojekyll` enables static archive serving; `publication.json` records provenance.
+The guide preserves its source/version boundaries; this presentation revision does not revalidate current backend behaviour.
