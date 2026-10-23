@@ -1,0 +1,89 @@
+{
+  "revision": "10",
+  "master_sha256": "d30eb8b9616a9d78fc61717659efd11322b17cd31522ea812f5105ff1d49b17e",
+  "date": "2026-10-23",
+  "source_fixtures": {
+    "count": 39,
+    "passed": 39
+  },
+  "source_recall_fixtures": {
+    "count": 5,
+    "passed": 5
+  },
+  "responsive_routes": {
+    "pages": 11,
+    "widths": [
+      1440,
+      1024,
+      390,
+      320
+    ],
+    "document_overflows": 0,
+    "affected_views_retested_after_resize_fix": true,
+    "final_browser_errors": []
+  },
+  "visual_captures": 18,
+  "motion": {
+    "advanced": true,
+    "paused": true,
+    "resumed": true,
+    "offscreenStopped": true,
+    "crop": "hidden",
+    "resumePhase": {
+      "before": "0.7699",
+      "after": "0.7894"
+    }
+  },
+  "reduced_motion": {
+    "motion": "paused",
+    "label": "Play helix animation"
+  },
+  "navigation": {
+    "search_results": 10,
+    "chapters": 11,
+    "escape_closes_search": true
+  },
+  "interactive_explanations": 8,
+  "ui_screenshot_images": 0,
+  "personal_test_terms_found": 0,
+  "interface_files": [
+    {
+      "file": "index.html",
+      "installed_version": "2.2.64",
+      "snapshot_version": "2.2.59",
+      "sha256": "e9604db434b3303abfba38873b79e6ed02f4d873d159dee1b075de784b739a29",
+      "matches_snapshot": true
+    },
+    {
+      "file": "app.css",
+      "installed_version": "2.2.64",
+      "snapshot_version": "2.2.59",
+      "sha256": "a27aedea45051a130c05a2505308bcf0feff11c1e97b44f32dcbb5fc5b543d2e",
+      "matches_snapshot": true
+    },
+    {
+      "file": "app.js",
+      "installed_version": "2.2.64",
+      "snapshot_version": "2.2.59",
+      "sha256": "0914cc8860394bedcbb613ef21b114ba77c99bb5f835e129748c66dfc3202411",
+      "matches_snapshot": true
+    },
+    {
+      "file": "my-helix.html",
+      "installed_version": "2.2.64",
+      "snapshot_version": "2.2.59",
+      "sha256": "55a7472cb8e411e7e63207dcc033debe37a06de2a4b71e28eb14dca5dae9a45c",
+      "matches_snapshot": true
+    },
+    {
+      "file": "my-wave.html",
+      "installed_version": "2.2.64",
+      "snapshot_version": "2.2.59",
+      "sha256": "c5defd2d55f38e1fede6dd158e6af127700deb6f9eaa650cbeedcebdcd6794e9",
+      "matches_snapshot": true
+    }
+  ],
+  "backend_runtime_tested": false,
+  "live_account_mutations": false,
+  "audio_evaluated": false
+}

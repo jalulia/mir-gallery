@@ -1,14 +1,17 @@
 {
-  "revision": "09",
-  "master": "Mindgut_Docs_V09.html",
-  "sha256": "8e6a6700129397f3fcb895ba06d229a4b6cf6a8a10d576c06a223eeecaad43a2",
-  "bytes": 2719969,
-  "interface_version": "2.2.59",
-  "ui": "All UI examples rendered from code; deterministic synthetic content; no UI screenshots",
-  "components": "shared registry, isolated styles and local behaviours",
+  "revision": "10",
+  "master": "Mindgut_Docs_V10.html",
+  "sha256": "d30eb8b9616a9d78fc61717659efd11322b17cd31522ea812f5105ff1d49b17e",
+  "bytes": 2898214,
+  "interface_version": "2.2.64",
+  "interface_source_matches": "Recorded 2.2.59 source, verified by five file hashes",
+  "backend_source": "cbf4e42",
+  "ui": "Native coded examples with synthetic content; no UI screenshots",
+  "new_interactive_explanations": 8,
+  "hero": "Canvas helix with pause, reduced-motion still, visibility suspension and responsive crop",
+  "identity": "Original Mindgut head mark and logotype",
   "published_url": "https://jalulia.github.io/mir-gallery/#contents",
   "history": "retained by explicit request",
   "public_cleanup_files": 35,
-  "originals": "preserved in local project and pre-cleanup checkout",
-  "previous_publication": "edd7a0c202cc78e0ddfc7662ed1066ef87d90d4a"
+  "previous_publication": "4fcb768d770ac6b3f9d473ed7d671e9f168cd2fd"
 }
