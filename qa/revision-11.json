@@ -1,0 +1,158 @@
+{
+  "revision": "11",
+  "date": "2026-10-23",
+  "master_sha256": "a0eed277beb5044e601b666bb26c48400931e0cdeba005e26ab7f837924bfbd8",
+  "responsive_routes": {
+    "pages": 11,
+    "widths": [
+      1440,
+      1024,
+      390,
+      320
+    ],
+    "document_overflows": 0,
+    "viewer_resize_settling": "Initial immediate samples included temporary overflow; all three viewers passed after their resize handlers settled at 1024, 390 and 320 px."
+  },
+  "component_families": 11,
+  "component_states": 37,
+  "component_state_checks": {
+    "total": 222,
+    "widths": [
+      1440,
+      390,
+      320
+    ],
+    "themes": [
+      "dark",
+      "light"
+    ],
+    "failed": 0
+  },
+  "component_actions": {
+    "arm": {
+      "count": "0/3",
+      "locked": true
+    },
+    "stop": true,
+    "folderClear": true,
+    "scanner": true,
+    "task": "3/3",
+    "files": {
+      "opens": true,
+      "cancelled": true,
+      "deleted": true,
+      "localDownload": true
+    },
+    "settledViewers": [
+      {
+        "width": 1024,
+        "frames": [
+          {
+            "width": 682,
+            "scrollWidth": 682,
+            "ready": true
+          },
+          {
+            "width": 682,
+            "scrollWidth": 682,
+            "ready": true
+          },
+          {
+            "width": 682,
+            "scrollWidth": 682,
+            "ready": true
+          }
+        ]
+      },
+      {
+        "width": 390,
+        "frames": [
+          {
+            "width": 333,
+            "scrollWidth": 333,
+            "ready": true
+          },
+          {
+            "width": 333,
+            "scrollWidth": 333,
+            "ready": true
+          },
+          {
+            "width": 333,
+            "scrollWidth": 333,
+            "ready": true
+          }
+        ]
+      },
+      {
+        "width": 320,
+        "frames": [
+          {
+            "width": 263,
+            "scrollWidth": 263,
+            "ready": true
+          },
+          {
+            "width": 263,
+            "scrollWidth": 263,
+            "ready": true
+          },
+          {
+            "width": 263,
+            "scrollWidth": 263,
+            "ready": true
+          }
+        ]
+      }
+    ],
+    "errors": []
+  },
+  "navigation": {
+    "header": [
+      "Guide \u2304",
+      "Search \u2318 K"
+    ],
+    "menu": {
+      "links": 11,
+      "current": "\u2196Guide index",
+      "groups": [
+        "Chapters",
+        "Reference"
+      ]
+    },
+    "escapeGuide": true,
+    "searchHits": 9,
+    "escapeSearch": true,
+    "anchor": {
+      "hash": "#memory/measure",
+      "current": "#memory/measure",
+      "top": 99.890625
+    },
+    "scrollSpy": "#memory/viewers",
+    "legacyAnchor": {
+      "top": 100.203125,
+      "homeLocalLinks": 0
+    }
+  },
+  "motion": {
+    "advanced": true,
+    "paused": true,
+    "heroSynced": true,
+    "resumed": true,
+    "reduced": {
+      "paused": true,
+      "hero": "paused",
+      "canvasWidth": 142
+    }
+  },
+  "geometric_banners": 10,
+  "geometric_index_thumbnails": 10,
+  "existing_interactive_explanations": 8,
+  "ui_screenshot_images": 0,
+  "personal_test_terms_found": 0,
+  "duplicate_ids": [],
+  "unresolved_anchors": [],
+  "final_browser_errors": [],
+  "backend_runtime_tested": false,
+  "live_account_mutations": false
+}

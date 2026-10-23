@@ -1,11 +1,11 @@
 # Mindgut documentation
 
-[Open the guide](https://jalulia.github.io/mir-gallery/#contents) · [Technical review](technical-review.md) · [Validation receipt](qa/revision-10.json)
+[Read the guide](https://jalulia.github.io/mir-gallery/#contents) · [Mindgut Moodboards (WIP)](https://jalulia.github.io/mir-gallery/moodboards/)
 
-Revision 10 is the main index: eleven pages, native interface examples, eight interactive explanations, original Mindgut identity, and a responsive animated helix. All UI sessions, files, tasks and viewer records are synthetic. Controls work within the examples without connecting to an account.
+The main index serves **Revision 11**: a single-file guide with one global Guide menu, local chapter outlines, animated geometric chapter visuals and faithfully coded interface examples using generic content.
 
-The self-contained `index.html` embeds a shared component registry, scoped product styles, local behavior, fonts and viewer modules. It can be saved and opened offline. These are documentation components, not an implementation of the product backend.
+The sidebar gallery contains eleven component families with selectable states and light/dark themes. Eight interactive explanations and three synthetic-record viewers remain available. No UI screenshots or personal sessions are published in the guide.
 
-Interface checked against installed 2.2.64; five interface files match the recorded 2.2.59 snapshot. Backend claims remain scoped to source commit cbf4e42. See the guide’s [evidence boundary](https://jalulia.github.io/mir-gallery/#reference/boundary).
+The interface was checked against installed **2.2.64**; five files match the recorded 2.2.59 frontend. Backend statements remain scoped to source snapshot `cbf4e42`. [Technical review](technical-review.md) · [Navigation and component review](ux-review.md) · [Revision 11 checks](qa/revision-11.json) · [Publication record](publication.json).
 
-Earlier gallery content is preserved locally and in Git history. Public pages and data containing personal session material were sanitized in Revision 09; the archived entry pages now lead to the guide. History is retained by explicit request.
+The earlier gallery remains under [_Archive/2026-10-23-gallery/](_Archive/2026-10-23-gallery/). Published pages containing personal session material were sanitized; original local files and Git history were retained by explicit request. Archived documentation entries lead to the current guide.
