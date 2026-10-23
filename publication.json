@@ -1,16 +1,17 @@
 {
   "document": "Mindgut documentation",
-  "revision": "07",
-  "document_date": "2026-10-20",
+  "revision": "08",
+  "document_date": "2026-10-23",
   "published_date": "2026-10-23",
-  "source_filename": "Mindgut_Docs_V07.html",
+  "source_filename": "Mindgut_Docs_V08.html",
   "source_status": "directional",
-  "index_sha256": "4be0b15e98c42f4207d479489d71730a2969766ebf6115af8218be8a84bbbf04",
-  "index_git_blob": "82f655ea8a6f9c8a0067e1508075362b7e939b8d",
-  "source_bytes": 2740192,
-  "archive_path": "_Archive/2026-10-23-gallery",
-  "archive_from_commit": "e8b66233e8f6a2c42b5f0ed1394b0b7c6480e338",
-  "archive_tree": "a24dbbab8c92a4af561d00f7495fba852e1043d9",
-  "verification": "Matches the current V07 pointer, build copy, and recorded source SHA-256. Eleven routes checked at 1440px and 390px; no horizontal overflow, broken visible images, or browser errors. Search returns relevant results.",
-  "scope": "Documentation of interface 2.2.59 and public source cbf4e42, with evidence boundaries retained inside the document."
+  "index_sha256": "13ebe9187c1a3233467261af0bc9b1c17d1e61fc9ee78e310196d2c6d99115ba",
+  "index_git_blob": "f4e193d918271cd72316356a0d938e1aeccca633",
+  "source_bytes": 899827,
+  "previous_document": "_Archive/2026-10-23-docs-v07/index.html",
+  "previous_document_commit": "60e109a3205e21b19d2d2d59525089e1f525d38b",
+  "gallery_archive": "_Archive/2026-10-23-gallery/",
+  "changes": "Replace workspace, homepage panel crops, sidebar explorer and top-bar screenshots with coded UI based on the recorded 2.2.59 frontend. Use generic example messages, tasks, files and readout values. Keep original UI font, wordmark, colours and controls; adapt layout to the documentation space.",
+  "verification": "Eleven routes at four widths; all eleven panel examples; twelve final focused layout checks. Mode, theme, sidebar, tasks, Stop and expanded view verified. No layout overflow or browser errors. V07 preserved unchanged.",
+  "scope": "Interface 2.2.59 and public source cbf4e42 evidence boundary retained. Product/backend claims not revalidated. The 3D and wave viewer evidence captures remain from V07."
 }
