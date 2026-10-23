@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-23",
+  "protected_html_pages": 51,
+  "cipher_round_trip": "all 51 authenticated successfully; secondary pages byte-identical to source",
+  "browser_checks": {
+    "wrong_password": "rejected",
+    "correct_password": "opens guide",
+    "refresh": "unlocked once per tab; no duplicate gate",
+    "direct_moodboard_url": "requires password while locked",
+    "draft": "encrypted save and recovery after refresh verified",
+    "discard_draft": "verified",
+    "lock_library": "returns to entry screen",
+    "chapter_navigation": "sidebar and contents verified",
+    "feedback_forms": 11,
+    "mobile_width": 390,
+    "mobile_overflow": false,
+    "desktop_overflow": false
+  },
+  "shared_inbox": "Pending free Supabase project; local drafts/export active",
+  "screenshots": "Local review images retained outside published repository"
+}
