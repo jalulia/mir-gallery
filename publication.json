@@ -1,8 +1,6 @@
 {
   "revision": "11",
   "master": "Mindgut_Docs_V11.html",
-  "sha256": "a0eed277beb5044e601b666bb26c48400931e0cdeba005e26ab7f837924bfbd8",
-  "bytes": 2874235,
   "interface_version": "2.2.64",
   "interface_source_matches": "Recorded 2.2.59 source, verified by five file hashes in Revision 10",
   "backend_source": "cbf4e42",
@@ -16,5 +14,21 @@
   "history": "retained by explicit request",
   "public_cleanup_files": 35,
   "previous_publication": "2c4dcd28cab695938186a28e315a72a1f6d49efc",
-  "preserved_related_surface": "moodboards/"
+  "preserved_related_surface": "moodboards/",
+  "unprotected_source_sha256": "a0eed277beb5044e601b666bb26c48400931e0cdeba005e26ab7f837924bfbd8",
+  "unprotected_source_bytes": 2874235,
+  "sha256": "cb3fd5796106c03b06c5f8660e52f0f58c42bf7ec99062f519b697f71eefd6d1",
+  "bytes": 3833980,
+  "access": {
+    "type": "AES-256-GCM encrypted HTML; tab-scoped unlock",
+    "protected_html_pages": 51,
+    "kdf": "PBKDF2-SHA256, 600000 iterations",
+    "boundary": "Public repository history and non-HTML assets remain accessible."
+  },
+  "collaboration": {
+    "pages": 11,
+    "drafts": "Encrypted on this device",
+    "export": "JSON proposal with page and base revision",
+    "shared_inbox": "Pending free Supabase project connection"
+  }
 }

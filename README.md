@@ -9,3 +9,9 @@ The sidebar gallery contains eleven component families with selectable states an
 The interface was checked against installed **2.2.64**; five files match the recorded 2.2.59 frontend. Backend statements remain scoped to source snapshot `cbf4e42`. [Technical review](technical-review.md) · [Navigation and component review](ux-review.md) · [Revision 11 checks](qa/revision-11.json) · [Publication record](publication.json).
 
 The earlier gallery remains under [_Archive/2026-10-23-gallery/](_Archive/2026-10-23-gallery/). Published pages containing personal session material were sanitized; original local files and Git history were retained by explicit request. Archived documentation entries lead to the current guide.
+
+## Shared library access and edits
+
+All 51 served HTML pages now ask for the shared library password, including direct links. Successful entry unlocks the current tab. Each of the eleven documentation pages offers encrypted local drafts and proposal downloads, retaining its page and revision. A shared Supabase review inbox is prepared; connection is pending.
+
+This reading gate does not remove public Git history or protect non-HTML files. [Access boundaries, editing instructions and the proposed review pipeline](collaboration/README.md).
